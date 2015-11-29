@@ -25,6 +25,7 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
         return this.receivedMessages;
     }
 
+    @Override
     public void sendMessage(TMsg msg){
         synchronized(this.lock){
             this.setIsBusy(true);
