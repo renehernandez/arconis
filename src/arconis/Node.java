@@ -1,5 +1,9 @@
 package arconis;
 
+import arconis.delegates.MessageDecoder;
+import arconis.delegates.MessageGenerator;
+import arconis.interfaces.Message;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -22,7 +26,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
         this.incomingMessages = new LinkedList<TMsg>();
         this.incomingChannel = new ServerSocket(0);
         this.address = new Address("127.0.0.1", this.incomingChannel.getLocalPort());
-        this.neighbors = new HashMap<Integer, Address>();
+        this.neighbors = new HashMap<>();
         this.generator = generator;
         this.decoder = decoder;
     }
@@ -105,6 +109,10 @@ public abstract class Node<TMsg extends Message> extends Thread {
             }
         }
     }
+
+    public abstract void sendMessage();
+
+    public abstract void sendMessage(TMsg inputMsg);
 
     protected abstract void processMessage();
 

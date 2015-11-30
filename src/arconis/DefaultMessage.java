@@ -1,5 +1,7 @@
 package arconis;
 
+import arconis.interfaces.Message;
+
 public class DefaultMessage extends Message {
 
     int objectID;

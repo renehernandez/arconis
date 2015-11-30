@@ -6,8 +6,15 @@ import java.util.stream.Collectors;
 import java.net.*;
 
 import arconis.*;
+import arconis.delegates.MessageDecoder;
+import arconis.delegates.MessageGenerator;
+import arconis.interfaces.Message;
 
 public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
+
+    public enum Message {
+        HELLO
+    }
 
     final Object lock = new Object();
     HashSet<String> receivedMessages;
@@ -22,23 +29,27 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
         return this.receivedMessages;
     }
 
-    public void sendMessage(TMsg msg){
+    @Override
+    public void sendMessage(){
+        sendMessage(this.getGenerator().generate(Message.HELLO.toString(), this));
+    }
+
+    @Override
+    public void sendMessage(TMsg inputMsg){
         synchronized(this.lock){
             this.setIsBusy(true);
-
+            TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
             ArrayList<Integer> broadcastNodes = new ArrayList<>();
 
-            if(!this.receivedMessages.contains(msg.getContent())) {
-                this.receivedMessages.add(msg.getContent());
-                System.out.println();
+            if(!this.getReceivedMessages().contains(inputMsg.getContent())) {
+                this.getReceivedMessages().add(inputMsg.getContent());
 
                 for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
                     Address address = entry.getValue();
-
                     try{
                         Socket output = this.getOutputChannel(address.getHost(), address.getPort());
                         DataOutputStream out = new DataOutputStream(output.getOutputStream());
-                        out.writeUTF(msg.encode());
+                        out.writeUTF(inputMsg.encode());
                         output.close();
                         broadcastNodes.add(entry.getKey());
                     } catch(Exception e){
@@ -48,7 +59,7 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
             }
 
             String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
-            System.out.println("From sendMessage: " + msg + "\nReached nodes: " + ids);
+            System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
             this.setIsBusy(false);
         }
@@ -58,34 +69,32 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
     protected void processMessage(){
         synchronized(this.lock){
             this.setIsBusy(true);
-            TMsg msg = this.getIncomingMessages().removeFirst();
-            TMsg outputMsg = this.getGenerator().generate(msg.getContent(), this);
+            TMsg inputMsg = this.getIncomingMessages().removeFirst();
+            TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
+            ArrayList<Integer> broadcastNodes = new ArrayList<>();
 
-            ArrayList<Integer> broadcastedNode = new ArrayList<>();
-
-            if(!this.receivedMessages.contains(msg.getContent())) {
-                this.receivedMessages.add(msg.getContent());
+            if(!this.getReceivedMessages().contains(inputMsg.getContent())) {
+                this.getReceivedMessages().add(inputMsg.getContent());
 
                 for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
-                    if(entry.getKey() == msg.getObjectID())
+                    if(entry.getKey() == inputMsg.getObjectID())
                         continue;
 
                     Address address = entry.getValue();
-
                     try{
                         Socket output = this.getOutputChannel(address.getHost(), address.getPort());
                         DataOutputStream out = new DataOutputStream(output.getOutputStream());
                         out.writeUTF(outputMsg.encode());
                         output.close();
-                        broadcastedNode.add(entry.getKey());
+                        broadcastNodes.add(entry.getKey());
                     } catch(Exception e){
                         System.out.println("Unable to connect to node: " + entry.getKey());
                     }
                 }
             }
 
-            String ids = broadcastedNode.stream().map(String::valueOf).collect(Collectors.joining(","));
-            System.out.println("Received message: " + msg + "\nOutput message: " + outputMsg + "\nReached nodes: " + ids);
+            String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
+            System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
             this.setIsBusy(false);
         }

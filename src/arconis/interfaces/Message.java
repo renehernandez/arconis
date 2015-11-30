@@ -1,4 +1,4 @@
-package arconis;
+package arconis.interfaces;
 
 public abstract class Message {
 
