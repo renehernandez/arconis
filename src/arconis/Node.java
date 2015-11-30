@@ -110,7 +110,9 @@ public abstract class Node<TMsg extends Message> extends Thread {
         }
     }
 
-    public abstract void sendMessage(TMsg msg);
+    public abstract void sendMessage();
+
+    public abstract void sendMessage(TMsg inputMsg);
 
     protected abstract void processMessage();
 
