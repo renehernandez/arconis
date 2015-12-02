@@ -77,12 +77,12 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
                         output.close();
                         this.confirmedNodes.put(entry.getKey(), false);
                     } catch (Exception e) {
-                        System.out.println("Unable to connect to node: " + entry.getKey());
+                        this.getLog().print("Unable to connect to node: " + entry.getKey());
                     }
                 }
 
                 String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
-                System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+                this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
                 this.setNodeState(State.PROCESSING);
             }
 
@@ -98,11 +98,11 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
 
             switch (this.getNodeState()) {
                 case SLEEPING:
-                    System.out.println(this.toString() + " received message in SLEEPING state");
+                    this.getLog().print(this.toString() + " received message in SLEEPING state");
                     handleSLEEPING(inputMsg);
                     break;
                 case PROCESSING:
-                    System.out.println(this.toString() + " received message in PROCESSING state");
+                    this.getLog().print(this.toString() + " received message in PROCESSING state");
                     handlePROCESSING(inputMsg);
                     break;
             }
@@ -129,11 +129,11 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
                 output.close();
                 this.confirmedNodes.put(entry.getKey(), false);
             } catch (Exception e) {
-                System.out.println("Unable to connect to node: " + entry.getKey());
+                this.getLog().print("Unable to connect to node: " + entry.getKey());
             }
         }
         String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
-        System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+        this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
         this.setNodeState(State.PROCESSING);
         if (this.confirmedNodes.size() == 0){
@@ -154,7 +154,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
             message += "\nReceived confirmation as a notification from: " + inputMsg.getObjectID();
         }
 
-        System.out.println(message);
+        this.getLog().print(message);
 
         if(this.alreadyConfirmed == this.confirmedNodes.size()){
             sendNotification();
@@ -162,6 +162,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
     }
 
     private void sendNotification(){
+        boolean successfulConnection = true;
         Address address = this.getNeighbors().get(this.parentObjectID);
         try {
             Socket output = this.getOutputChannel(address.getHost(), address.getPort());
@@ -169,22 +170,25 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
             out.writeUTF(this.getGenerator().generate(Message.NOTIFY.toString(), this).encode());
             output.close();
         } catch (Exception e) {
-            System.out.println("Unable to connect to node: " + this.parentObjectID);
+            this.getLog().print("Unable to connect to node: " + this.parentObjectID);
+            successfulConnection = false;
         }
 
-        System.out.println("Sent confirmation to parent: " + this.parentObjectID);
+        if(successfulConnection)
+            this.getLog().print("Sent confirmation to parent: " + this.parentObjectID);
+
         this.setNodeState(State.DONE);
     }
 
     private BroadcastWithNotificationNode<TMsg> setNodeState(State state){
-        System.out.println("Changed state from: " + this.state + " to: " + state);
+        this.getLog().print("Changed state from: " + this.state + " to: " + state);
         this.state = state;
         return this;
     }
 
     private BroadcastWithNotificationNode<TMsg> setParentNode(int parentObjectID){
         this.parentObjectID = parentObjectID;
-        System.out.println("Set Node: " + this.getObjectID() + ", Parent: " + this.parentObjectID);
+        this.getLog().print("Set Node: " + this.getObjectID() + ", Parent: " + this.parentObjectID);
         return this;
     }
 }

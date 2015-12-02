@@ -3,6 +3,7 @@ package arconis;
 import arconis.delegates.MessageDecoder;
 import arconis.delegates.MessageGenerator;
 import arconis.interfaces.Message;
+import arconis.log.*;
 
 import java.io.*;
 import java.net.*;
@@ -19,8 +20,9 @@ public abstract class Node<TMsg extends Message> extends Thread {
     HashMap<Integer, Address> neighbors;
     MessageGenerator<TMsg> generator;
     MessageDecoder<TMsg> decoder;
+    Log log;
 
-    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException{
+    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log) throws IOException{
         this.objectID = objectID;
         this.isBusy = false;
         this.incomingMessages = new LinkedList<TMsg>();
@@ -29,6 +31,15 @@ public abstract class Node<TMsg extends Message> extends Thread {
         this.neighbors = new HashMap<>();
         this.generator = generator;
         this.decoder = decoder;
+        this.log = log;
+    }
+
+    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
+        this(objectID, generator, decoder, new ConsoleLog());
+    }
+
+    public Log getLog(){
+        return this.log;
     }
 
     public Address getAddress(){

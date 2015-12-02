@@ -53,13 +53,13 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
                         output.close();
                         broadcastNodes.add(entry.getKey());
                     } catch(Exception e){
-                        System.out.println("Unable to connect to node: " + entry.getKey());
+                        this.getLog().print("Unable to connect to node: " + entry.getKey());
                     }
                 }
             }
 
             String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
-            System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
             this.setIsBusy(false);
         }
@@ -88,13 +88,13 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
                         output.close();
                         broadcastNodes.add(entry.getKey());
                     } catch(Exception e){
-                        System.out.println("Unable to connect to node: " + entry.getKey());
+                        this.getLog().print("Unable to connect to node: " + entry.getKey());
                     }
                 }
             }
 
             String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
-            System.out.println("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
             this.setIsBusy(false);
         }
