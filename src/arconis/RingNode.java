@@ -12,8 +12,6 @@ import java.io.IOException;
  */
 public abstract class RingNode<TMsg extends Message> extends Node<TMsg> {
 
-    private int neighborsCount = 0;
-
     private Address leftAddress;
 
     private Address rightAddress;
@@ -30,16 +28,30 @@ public abstract class RingNode<TMsg extends Message> extends Node<TMsg> {
         return this.rightAddress;
     }
 
-    public void addNeighbor(RingNode<TMsg> node){
-        if(this.neighborsCount == 0){
-            this.leftAddress = node.getAddress();
-            this.neighborsCount++;
-        }
-        else if(this.neighborsCount == 1){
-            this.rightAddress = node.getAddress();
-            this.neighborsCount++;
-        }
-        super.addNeighbor(node);
+    public RingNode<TMsg> setLeftNodeAddress(Address address) {
+        this.leftAddress = address;
+        return this;
     }
+
+    public RingNode<TMsg> setRightNodeAddress(Address address){
+        this.rightAddress = address;
+        return this;
+    }
+
+//
+//    @Override
+//    public Node<TMsg> addNeighbor(Node<TMsg> node){
+//        if(this.neighborsCount == 0){
+//            this.leftAddress = node.getAddress();
+//            this.neighborsCount++;
+//        }
+//        else if(this.neighborsCount == 1){
+//            this.rightAddress = node.getAddress();
+//            this.neighborsCount++;
+//        }
+//        super.addNeighbor(node);
+//
+//        return this;
+//    }
 
 }

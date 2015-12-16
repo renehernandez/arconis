@@ -108,7 +108,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
                 DataInputStream in =
                         new DataInputStream(server.getInputStream());
                 TMsg msg = this.getDecoder().decode(in.readUTF());
-                this.incomingMessages.add(msg);
+                this.getIncomingMessages().add(msg);
 
                 // Starting message processing.
                 new Thread(this::processMessage).start();
@@ -121,11 +121,11 @@ public abstract class Node<TMsg extends Message> extends Thread {
         }
     }
 
-    public abstract void sendMessage() throws IOException;
+    public abstract void sendMessage();
 
-    public abstract void sendMessage(TMsg inputMsg) throws IOException;
+    public abstract void sendMessage(TMsg inputMsg);
 
-    protected abstract void processMessage() throws IOException;
+    protected abstract void processMessage();
 
     @Override
     public String toString(){

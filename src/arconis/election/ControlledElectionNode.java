@@ -26,7 +26,6 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         NOTIFY
     }
 
-
     State state;
 
     final Object lock = new Object();
@@ -65,34 +64,20 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
     }
 
     @Override
-    public void sendMessage() throws IOException {
+    public void sendMessage() {
         sendMessage(this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.getCurrentDistance(), this));
+        sendMessage(this.getGenerator().generate(this.getID() + ":FORWARD:RIGHT:" + this.getCurrentDistance(), this));
     }
 
     @Override
-    public void sendMessage(TMsg inputMsg) throws IOException {
+    public void sendMessage(TMsg inputMsg){
         synchronized (this.lock){
-            this.setIsBusy(true);
-            TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
-
-            if(this.state == State.SLEEPING){
-                this.getReceivedMessages().add(inputMsg.getContent());
-
-                this.setNodeState(State.ACTIVE);
-
-                Address address = this.getLeftNodeAddress();
-                this.writeToSocket(address, inputMsg);
-
-                address = this.getRightNodeAddress();
-                this.writeToSocket(address, inputMsg);
-            }
-
-            this.setIsBusy(false);
+            releaseMessage(inputMsg);
         }
     }
 
     @Override
-    protected void processMessage() throws IOException {
+    protected void processMessage() {
         synchronized (this.lock) {
             this.setIsBusy(true);
             TMsg inputMsg = this.getIncomingMessages().removeFirst();
@@ -103,11 +88,11 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
                     handleSLEEPING(inputMsg);
                     break;
                 case ACTIVE:
-                    this.getLog().print(this.toString() + " received message in SLEEPING state");
+                    this.getLog().print(this.toString() + " received message in ACTIVE state");
                     handleACTIVE(inputMsg);
                     break;
                 case PASSIVE:
-                    this.getLog().print(this.toString() + " received message in PROCESSING state");
+                    this.getLog().print(this.toString() + " received message in PASSIVE state");
                     handlePASSIVE(inputMsg);
                     break;
             }
@@ -118,7 +103,7 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
 
     // Private methods
 
-    private void handleSLEEPING(TMsg inputMsg) throws IOException {
+    private void handleSLEEPING(TMsg inputMsg) {
         String[] parts = inputMsg.getContent().split(":");
         TMsg outputMsg = null;
 
@@ -127,45 +112,48 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         String direction = parts[2];
         int distance = sense.equals("FORWARD") ? Integer.parseInt(parts[3]) : -1;
 
-        this.setNodeState(this.getID() < idValue ? State.ACTIVE : State.PASSIVE);
+        if(idValue < this.getID()){
+            this.setMinimunID(idValue);
+            this.setNodeState(State.PASSIVE);
+        } else {
+            this.setNodeState(State.ACTIVE);
+        }
 
-        if (this.getNodeState() == State.PASSIVE){
-            if (distance > 0){
+        if (this.getNodeState() == State.PASSIVE) {
+            if (distance > 0) {
                 outputMsg = this.getGenerator().generate(parts[0] + ":" + sense + ":" + direction + ":" + (distance - 1), this);
                 Address address = direction.equals("LEFT") ? this.getLeftNodeAddress() : this.getRightNodeAddress();
                 writeToSocket(address, outputMsg);
-            }
-            else if (distance == 0){
-                if (direction.equals("LEFT")){
-                    outputMsg = this.getGenerator().generate(parts[0] + "BACKWARD:RIGHT", this);
+            } else if (distance == 0) {
+                if (direction.equals("LEFT")) {
+                    outputMsg = this.getGenerator().generate(parts[0] + ":BACKWARD:RIGHT", this);
                     writeToSocket(this.getRightNodeAddress(), outputMsg);
-                }
-                else{
-                    outputMsg = this.getGenerator().generate(parts[0] + "BACKWARD:LEFT", this);
+                } else {
+                    outputMsg = this.getGenerator().generate(parts[0] + ":BACKWARD:LEFT", this);
                     writeToSocket(this.getLeftNodeAddress(), outputMsg);
                 }
             }
+            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
         }
-
-//        String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
-        this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
-
-//        this.setNodeState(State.PROCESSING);
-//        if (this.confirmedNodes.size() == 0){
-//            sendNotification();
-//        }
+        else {
+            this.releaseMessage(this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.getCurrentDistance(), this));
+            this.releaseMessage(this.getGenerator().generate(this.getID() + ":FORWARD:RIGHT:" + this.getCurrentDistance(), this));
+        }
     }
 
-    private void handleACTIVE(TMsg inputMsg) throws IOException {
+    private void handleACTIVE(TMsg inputMsg) {
         String[] parts = inputMsg.getContent().split(":");
         TMsg outputMsg = null;
 
         int idValue = Integer.parseInt(parts[0]);
         String sense = parts[1];
-        String direction = parts[2];
-        int distance = sense.equals("FORWARD") ? Integer.parseInt(parts[3]) : -1;
 
-        this.setNodeState(this.getID() <= idValue ? State.ACTIVE : State.PASSIVE);
+        if(idValue < this.getID()){
+            this.setMinimunID(idValue);
+            this.setNodeState(State.PASSIVE);
+        } else {
+            this.setNodeState(State.ACTIVE);
+        }
 
         switch(this.getNodeState()){
             case ACTIVE:
@@ -177,9 +165,11 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
 
                        outputMsg = this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.getCurrentDistance(), this);
                        writeToSocket(this.getLeftNodeAddress(), outputMsg);
+                       this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\n");
 
                        outputMsg = this.getGenerator().generate(this.getID() + ":FORWARD:RIGHT:" + this.getCurrentDistance(), this);
                        writeToSocket(this.getRightNodeAddress(), outputMsg);
+                       this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\n");
                    }
                 }
                 break;
@@ -188,44 +178,77 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
                 break;
         }
 
-//        String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
-        this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
-
     }
 
-    private void handlePASSIVE(TMsg inputMsg) throws IOException {
+    private void handlePASSIVE(TMsg inputMsg) {
         String[] parts = inputMsg.getContent().split(":");
         TMsg outputMsg = null;
 
         int idValue = parts[0].equals(Message.NOTIFY.toString()) ? -1 : Integer.parseInt(parts[0]);
         String sense = parts[1];
         String direction = parts[2];
-        int distance = sense.equals("FORWARD") ? Integer.parseInt(parts[3]) : -1;
+        int distance = !parts[0].equals(Message.NOTIFY.toString()) && sense.equals("FORWARD") ? Integer.parseInt(parts[3]) : -1;
 
         if(parts[0].equals(Message.NOTIFY.toString())){
-            this.sendNotification();
+            if(direction.equals("LEFT"))
+                writeToSocket(this.getLeftNodeAddress(), inputMsg);
+            else
+                writeToSocket(this.getRightNodeAddress(), inputMsg);
+
+            this.setNodeState(State.DONE);
+            this.getLog().print(this.toString() + " Notification message: " + inputMsg + "\n");
             return;
         }
 
-        if (distance > 0){
-            outputMsg = this.getGenerator().generate(parts[0] + ":" + sense + ":" + direction + ":" + (distance - 1), this);
-            Address address = direction.equals("LEFT") ? this.getLeftNodeAddress() : this.getRightNodeAddress();
-            writeToSocket(address, outputMsg);
+        if(idValue < this.getMinimumID()) {
+            this.setMinimunID(idValue);
         }
-        else if (distance == 0){
-            if (direction.equals("LEFT")){
-                outputMsg = this.getGenerator().generate(parts[0] + "BACKWARD:RIGHT", this);
-                writeToSocket(this.getRightNodeAddress(), outputMsg);
+
+        if(sense.equals("FORWARD")) {
+            if (distance > 0) {
+                outputMsg = this.getGenerator().generate(parts[0] + ":" + sense + ":" + direction + ":" + (distance - 1), this);
+                Address address = direction.equals("LEFT") ? this.getLeftNodeAddress() : this.getRightNodeAddress();
+                writeToSocket(address, outputMsg);
+            } else if (distance == 0) {
+                if (direction.equals("LEFT")) {
+                    outputMsg = this.getGenerator().generate(parts[0] + ":BACKWARD:RIGHT", this);
+                    writeToSocket(this.getRightNodeAddress(), outputMsg);
+                } else {
+                    outputMsg = this.getGenerator().generate(parts[0] + ":BACKWARD:LEFT", this);
+                    writeToSocket(this.getLeftNodeAddress(), outputMsg);
+                }
             }
-            else{
-                outputMsg = this.getGenerator().generate(parts[0] + "BACKWARD:LEFT", this);
-                writeToSocket(this.getLeftNodeAddress(), outputMsg);
-            }
+            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
+        } else{
+            outputMsg = inputMsg;
+            if(direction.equals("LEFT"))
+                writeToSocket(this.getLeftNodeAddress(), inputMsg);
+            else
+                writeToSocket(this.getRightNodeAddress(), inputMsg);
+            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
         }
 
     }
 
-    private ControlledElectionNode<TMsg> sendNotification() throws IOException {
+    private void releaseMessage(TMsg inputMsg){
+        this.setIsBusy(true);
+        TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
+        String[] parts = inputMsg.getContent().split(":");
+
+        if(this.state == State.SLEEPING){
+            this.setNodeState(State.ACTIVE);
+        }
+
+        this.getReceivedMessages().add(inputMsg.getContent());
+
+        Address address = parts[2].equals("LEFT") ? this.getLeftNodeAddress() : this.getRightNodeAddress();
+        this.writeToSocket(address, outputMsg);
+
+        this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + (outputMsg == null ? "No message transmission" : outputMsg) + "\n");
+        this.setIsBusy(false);
+    }
+
+    private ControlledElectionNode<TMsg> sendNotification() {
         TMsg outputMsg = this.getGenerator().generate(Message.NOTIFY.toString() + ":FORWARD:LEFT", this);
         writeToSocket(this.getLeftNodeAddress(), outputMsg);
 
@@ -238,7 +261,7 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
     }
 
     private ControlledElectionNode<TMsg> setNodeState(State state){
-        this.getLog().print("Changed state from: " + this.state + " to: " + state);
+        this.getLog().print(this.toString() + " Changed state from: " + this.state + " to: " + state);
         this.state = state;
         return this;
     }
@@ -253,11 +276,16 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         return this;
     }
 
-    private ControlledElectionNode<TMsg> writeToSocket(Address address, TMsg inputMsg) throws IOException {
-        Socket output = this.getOutputChannel(address.getHost(), address.getPort());
-        DataOutputStream out = new DataOutputStream(output.getOutputStream());
-        out.writeUTF(inputMsg.encode());
-        output.close();
+    private ControlledElectionNode<TMsg> writeToSocket(Address address, TMsg inputMsg) {
+        try {
+            Socket output = this.getOutputChannel(address.getHost(), address.getPort());
+            DataOutputStream out = new DataOutputStream(output.getOutputStream());
+            out.writeUTF(inputMsg.encode());
+            output.close();
+        }
+        catch(IOException e){
+            this.getLog().print("Unable to send message to:" + address);
+        }
         return this;
     }
 
