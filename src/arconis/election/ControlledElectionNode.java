@@ -66,7 +66,7 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
 
     @Override
     public void sendMessage() throws IOException {
-        sendMessage(this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.get, this));
+        sendMessage(this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.getCurrentDistance(), this));
     }
 
     @Override
