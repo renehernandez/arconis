@@ -8,7 +8,7 @@ import java.net.*;
 import arconis.*;
 import arconis.delegates.MessageDecoder;
 import arconis.delegates.MessageGenerator;
-import arconis.interfaces.Message;
+import arconis.interfaces.*;
 
 public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 

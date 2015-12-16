@@ -121,11 +121,11 @@ public abstract class Node<TMsg extends Message> extends Thread {
         }
     }
 
-    public abstract void sendMessage();
+    public abstract void sendMessage() throws IOException;
 
-    public abstract void sendMessage(TMsg inputMsg);
+    public abstract void sendMessage(TMsg inputMsg) throws IOException;
 
-    protected abstract void processMessage();
+    protected abstract void processMessage() throws IOException;
 
     @Override
     public String toString(){
