@@ -34,6 +34,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
     HashMap<Integer, Boolean> confirmedNodes;
     int alreadyConfirmed;
     int parentObjectID;
+    boolean initiator;
 
     public BroadcastWithNotificationNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
         super(objectID, generator, decoder);
@@ -42,6 +43,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         this.state = State.SLEEPING;
         this.confirmedNodes = new HashMap<>();
         this.alreadyConfirmed = 0;
+        this.initiator = false;
     }
 
     public HashSet<String> getReceivedMessages(){
@@ -64,21 +66,16 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
             TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
 
             if(this.state == State.SLEEPING){
+                this.getBenchmark().start();
                 this.getReceivedMessages().add(inputMsg.getContent());
 
                 this.setNodeState(State.INITIATOR);
+                this.initiator = true;
 
                 for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()) {
                     Address address = entry.getValue();
-                    try {
-                        Socket output = this.getOutputChannel(address.getHost(), address.getPort());
-                        DataOutputStream out = new DataOutputStream(output.getOutputStream());
-                        out.writeUTF(inputMsg.encode());
-                        output.close();
-                        this.confirmedNodes.put(entry.getKey(), false);
-                    } catch (Exception e) {
-                        this.getLog().print("Unable to connect to node: " + entry.getKey());
-                    }
+
+                    writeToSocket(address, inputMsg, entry);
                 }
 
                 String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
@@ -117,21 +114,17 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         this.setParentNode(inputMsg.getObjectID());
         TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
 
+        this.getBenchmark().start();
+        this.getReceivedMessages().add(inputMsg.getContent());
+
         for (Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()) {
             if (entry.getKey() == inputMsg.getObjectID())
                 continue;
 
             Address address = entry.getValue();
-            try {
-                Socket output = this.getOutputChannel(address.getHost(), address.getPort());
-                DataOutputStream out = new DataOutputStream(output.getOutputStream());
-                out.writeUTF(outputMsg.encode());
-                output.close();
-                this.confirmedNodes.put(entry.getKey(), false);
-            } catch (Exception e) {
-                this.getLog().print("Unable to connect to node: " + entry.getKey());
-            }
+            writeToSocket(address, outputMsg, entry);
         }
+
         String ids = this.confirmedNodes.keySet().stream().map(String::valueOf).collect(Collectors.joining(","));
         this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
 
@@ -169,6 +162,9 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
             DataOutputStream out = new DataOutputStream(output.getOutputStream());
             out.writeUTF(this.getGenerator().generate(Message.NOTIFY.toString(), this).encode());
             output.close();
+
+            if(!this.initiator)
+                this.getBenchmark().incrementMessageCount();
         } catch (Exception e) {
             this.getLog().print("Unable to connect to node: " + this.parentObjectID);
             successfulConnection = false;
@@ -177,8 +173,24 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         if(successfulConnection)
             this.getLog().print("Sent confirmation to parent: " + this.parentObjectID);
 
+        this.getBenchmark().stop();
+        this.getLog().print(this.toString() + " Number of Messages: " + this.getBenchmark().getNumberOfMessages() + "\nTime Elapsed: " + this.getBenchmark().getTimeElapsed() + "\n");
         this.setNodeState(State.DONE);
     }
+
+    private void writeToSocket(Address address, TMsg outputMsg, Map.Entry<Integer, Address> entry){
+        try {
+            Socket output = this.getOutputChannel(address.getHost(), address.getPort());
+            DataOutputStream out = new DataOutputStream(output.getOutputStream());
+            out.writeUTF(outputMsg.encode());
+            output.close();
+            this.getBenchmark().incrementMessageCount();
+            this.confirmedNodes.put(entry.getKey(), false);
+        } catch (Exception e) {
+            this.getLog().print("Unable to connect to node: " + entry.getKey());
+        }
+    }
+
 
     private BroadcastWithNotificationNode<TMsg> setNodeState(State state){
         this.getLog().print("Changed state from: " + this.state + " to: " + state);
