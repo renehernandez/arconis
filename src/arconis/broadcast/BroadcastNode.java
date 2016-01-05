@@ -46,20 +46,13 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
                 for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
                     Address address = entry.getValue();
-                    try{
-                        Socket output = this.getOutputChannel(address.getHost(), address.getPort());
-                        DataOutputStream out = new DataOutputStream(output.getOutputStream());
-                        out.writeUTF(inputMsg.encode());
-                        output.close();
-                        broadcastNodes.add(entry.getKey());
-                    } catch(Exception e){
-                        this.getLog().print("Unable to connect to node: " + entry.getKey());
-                    }
-                }
-            }
 
-            String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
-            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+                    writeToSocket(address, inputMsg, broadcastNodes, entry);
+                }
+                this.getLog().print(this.toString() + " Number of Messages: " + this.getBenchmark().getNumberOfMessages() + "\n");
+                String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
+                this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
+            }
 
             this.setIsBusy(false);
         }
@@ -81,22 +74,30 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
                         continue;
 
                     Address address = entry.getValue();
-                    try{
-                        Socket output = this.getOutputChannel(address.getHost(), address.getPort());
-                        DataOutputStream out = new DataOutputStream(output.getOutputStream());
-                        out.writeUTF(outputMsg.encode());
-                        output.close();
-                        broadcastNodes.add(entry.getKey());
-                    } catch(Exception e){
-                        this.getLog().print("Unable to connect to node: " + entry.getKey());
-                    }
+                    writeToSocket(address, outputMsg, broadcastNodes, entry);
                 }
+
+                this.getLog().print(this.toString() + " Number of Messages: " + this.getBenchmark().getNumberOfMessages() + "\n");
+                String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
+                this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
             }
 
-            String ids = broadcastNodes.stream().map(String::valueOf).collect(Collectors.joining(","));
-            this.getLog().print("Input message: " + inputMsg + "\nOutput message: " + outputMsg + "\nBroadcast message to: " + ids);
-
             this.setIsBusy(false);
+        }
+    }
+
+    // Private Methods
+
+    private void writeToSocket(Address address, TMsg outputMsg, ArrayList<Integer> broadcastNodes, Map.Entry<Integer, Address> entry){
+        try{
+            Socket output = this.getOutputChannel(address.getHost(), address.getPort());
+            DataOutputStream out = new DataOutputStream(output.getOutputStream());
+            out.writeUTF(outputMsg.encode());
+            output.close();
+            broadcastNodes.add(entry.getKey());
+            this.getBenchmark().incrementMessageCount();
+        } catch(Exception e){
+            this.getLog().print("Unable to connect to node: " + entry.getKey());
         }
     }
 

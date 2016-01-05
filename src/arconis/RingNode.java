@@ -16,8 +16,8 @@ public abstract class RingNode<TMsg extends Message> extends Node<TMsg> {
 
     private Address rightAddress;
 
-    public RingNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log) throws IOException {
-        super(objectID, generator, decoder, log);
+    public RingNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
+        super(objectID, generator, decoder);
     }
 
     public Address getLeftNodeAddress(){

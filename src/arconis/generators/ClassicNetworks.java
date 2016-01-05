@@ -32,6 +32,21 @@ public class ClassicNetworks {
         return network;
     }
 
+    public static <TNode extends Node<TMsg>, TMsg extends Message> ArrayList<TNode> CompleteNetwork(NodeGenerator<TNode, TMsg> generator, int n){
+        ArrayList<TNode> network = new ArrayList<>(n);
+
+        for(int i = 0; i < n; i++) {
+            network.add(generator.generate(i));
+            network.get(i).start();
+            for (int j = i - 1; j >= 0; j--) {
+                network.get(i).addNeighbor(network.get(j));
+                network.get(j).addNeighbor(network.get(i));
+            }
+        }
+
+        return network;
+    }
+
     public static <TNode extends Node<TMsg>, TMsg extends Message> ArrayList<TNode> PathNetwork(NodeGenerator<TNode, TMsg> generator, int n) {
         ArrayList<TNode> network = new ArrayList<>(n);
         network.add(generator.generate(0));

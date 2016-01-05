@@ -5,48 +5,32 @@ package arconis.benchmark;
  */
 public class Benchmark {
 
+    static long longestTime;
+    static int totalNumberOfMessages;
+    static final Object globalLock = new Object();
+
     long initialTime;
     long finalTime;
-    int[] messagesExecutions;
-    long[] timeExecutions;
-    int executions;
+    int numberOfMessages;
     final Object lock = new Object();
-    int currentExecution;
 
-    public Benchmark(int executions){
-        this.messagesExecutions = new int[executions];
-        this.timeExecutions = new long[executions];
-        this.executions = executions;
-        this.currentExecution = 0;
+    public Benchmark(){
+        this.numberOfMessages = 0;
     }
 
-    public int getCurrentExecution(){
-        return this.currentExecution;
-    }
-
-    public Benchmark nextExecution(){
-        this.currentExecution++;
-        return this;
-    }
-
-    public Benchmark setTimeExecution(long time){
-        synchronized (lock){
-            this.timeExecutions[this.currentExecution] = time;
+    public Benchmark incrementMessageCount(){
+        synchronized (lock) {
+            this.numberOfMessages++;
         }
         return this;
     }
 
-    public Benchmark incrementMessageCount(){
-        this.messagesExecutions[this.currentExecution]++;
-        return this;
+    public int getNumberOfMessages(){
+        return this.numberOfMessages;
     }
 
-    public int[] getMessagesExecutions(){
-        return this.messagesExecutions;
-    }
-
-    public long[] getTimeExecutions(){
-        return this.timeExecutions;
+    public long getTimeElapsed(){
+        return this.finalTime - this.initialTime;
     }
 
     public long getInitialTime(){
@@ -58,12 +42,45 @@ public class Benchmark {
     }
 
     public Benchmark start(){
-        this.initialTime = System.nanoTime();
+        synchronized (lock) {
+            this.initialTime = System.nanoTime();
+        }
         return this;
     }
 
+    public Benchmark increaseTotalNumberOfMessages(int messages){
+        synchronized (globalLock) {
+            totalNumberOfMessages += messages;
+        }
+        return this;
+    }
+
+    public static int getTotalNumberOfMessages(){
+        return totalNumberOfMessages;
+    }
+
+    public Benchmark updateLongestTime(long elapsedTime){
+        synchronized (globalLock) {
+            if(longestTime < elapsedTime){
+                longestTime = elapsedTime;
+            }
+        }
+        return this;
+    }
+
+    public static long getLongestTime(){
+        return longestTime;
+    }
+
+    public static void resetMeasures(){
+        longestTime = 0;
+        totalNumberOfMessages = 0;
+    }
+
     public Benchmark stop(){
-        this.finalTime = System.nanoTime();
+        synchronized (lock) {
+            this.finalTime = System.nanoTime();
+        }
         return this;
     }
 }

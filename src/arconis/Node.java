@@ -1,5 +1,6 @@
 package arconis;
 
+import arconis.benchmark.Benchmark;
 import arconis.delegates.MessageDecoder;
 import arconis.delegates.MessageGenerator;
 import arconis.interfaces.Message;
@@ -20,9 +21,10 @@ public abstract class Node<TMsg extends Message> extends Thread {
     HashMap<Integer, Address> neighbors;
     MessageGenerator<TMsg> generator;
     MessageDecoder<TMsg> decoder;
+    Benchmark benchmark;
     Log log;
 
-    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log) throws IOException{
+    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log, Benchmark benchmark) throws IOException{
         this.objectID = objectID;
         this.isBusy = false;
         this.incomingMessages = new LinkedList<TMsg>();
@@ -32,10 +34,15 @@ public abstract class Node<TMsg extends Message> extends Thread {
         this.generator = generator;
         this.decoder = decoder;
         this.log = log;
+        this.benchmark = benchmark;
     }
 
     public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
-        this(objectID, generator, decoder, new ConsoleLog());
+        this(objectID, generator, decoder, new ConsoleLog(), new Benchmark());
+    }
+
+    public Benchmark getBenchmark(){
+        return this.benchmark;
     }
 
     public Log getLog(){
