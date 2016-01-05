@@ -12,27 +12,39 @@ import java.util.*;
  */
 public class DiscoNode<TMsg extends Message> extends Node<TMsg> {
 
+    public enum Status {
+        SLEEP,
+        LISTEN,
+        TRANSMITTING
+    }
 
     ArrayList<Integer> primes;
     final static int MAX = 1 << 20;
     int firstPrime;
     int secondPrime;
-    int posX, posY;
-    int radius;
+    int posX, posY, radius, slotTime;
+    double dutyCycle;
+    Status status;
 
-    public DiscoNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, int posX, int posY, int radius) throws IOException {
+
+    public DiscoNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, int posX, int posY, int radius, int slotTime, double dutyCycle) throws IOException {
         super(objectID, generator, decoder);
 
         this.primes = new ArrayList<>();
         this.eratosthenesSieve();
         Random rand = new Random();
-        this.firstPrime = this.primes.get(rand.nextInt(primes.size()/2));
-        this.secondPrime = this.primes.get(primes.size()/2 + rand.nextInt(primes.size() - primes.size()/2  + 1));
+        int half = this.primes.size()/2;
+        this.firstPrime = this.primes.get(rand.nextInt(half));
+        if(this.primes.size() % 2 == 1)
+            half++;
+        this.secondPrime = this.primes.get(half + rand.nextInt(half));
         this.posX = posX;
         this.posY = posY;
         this.radius = radius;
+        this.slotTime = slotTime;
+        this.dutyCycle = dutyCycle;
+        this.status = Status.SLEEP;
     }
-
 
     @Override
     public void sendMessage() {
