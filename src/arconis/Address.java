@@ -17,4 +17,9 @@ public class Address {
     public int getPort(){
         return this.port;
     }
+
+    @Override
+    public String toString(){
+        return "<Host:" + this.host + " | Port:" + this.port + ">";
+    }
 }

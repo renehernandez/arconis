@@ -9,18 +9,13 @@ public class DefaultMessage extends Message {
     static final int size = 32;
 
     public DefaultMessage(String content, int objectID){
+        super(objectID, System.currentTimeMillis());
         this.content = content;
-        this.objectID = objectID;
     }
 
     @Override
     public String getContent(){
         return this.content;
-    }
-
-    @Override
-    public int getObjectID(){
-        return this.objectID;
     }
 
     @Override
@@ -51,12 +46,12 @@ public class DefaultMessage extends Message {
 
         DefaultMessage msg = (DefaultMessage)other;
 
-        return this.content == msg.getContent();
+        return this.content.equals(msg.getContent());
     }
 
     @Override
     public String toString(){
-        return "<objectID: " + this.objectID + ", content: " + this.content + ">";
+        return "<objectID:" + this.objectID + ", content:" + this.content + ">";
     }
 
 }

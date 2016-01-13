@@ -79,12 +79,13 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         }
     }
 
+    // Fix this code
     @Override
-    protected void processMessage() {
+    protected void processMessage(TMsg msg) {
         synchronized (this.lock) {
             this.setIsBusy(true);
             if(this.getIncomingMessages().size() > 0) {
-                TMsg inputMsg = this.getIncomingMessages().removeFirst();
+                TMsg inputMsg = this.getIncomingMessages().poll();
 
                 switch (this.getNodeState()) {
                     case SLEEPING:
