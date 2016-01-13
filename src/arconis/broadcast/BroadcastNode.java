@@ -58,11 +58,12 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
         }
     }
 
+    // Fix this code
     @Override
-    protected void processMessage(){
+    protected void processMessage(TMsg msg){
         synchronized(this.lock){
             this.setIsBusy(true);
-            TMsg inputMsg = this.getIncomingMessages().removeFirst();
+            TMsg inputMsg = this.getIncomingMessages().poll();
             TMsg outputMsg = this.getGenerator().generate(inputMsg.getContent(), this);
             ArrayList<Integer> broadcastNodes = new ArrayList<>();
 

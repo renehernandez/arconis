@@ -9,6 +9,7 @@ import arconis.log.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public abstract class Node<TMsg extends Message> extends Thread {
 
@@ -17,17 +18,19 @@ public abstract class Node<TMsg extends Message> extends Thread {
 
     Address address;
     ServerSocket incomingChannel;
-    LinkedList<TMsg> incomingMessages;
+    ConcurrentLinkedQueue<TMsg> incomingMessages;
     HashMap<Integer, Address> neighbors;
     MessageGenerator<TMsg> generator;
     MessageDecoder<TMsg> decoder;
     Benchmark benchmark;
     Log log;
 
+    final Object queueAccess = new Object();
+
     public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log, Benchmark benchmark) throws IOException{
         this.objectID = objectID;
         this.isBusy = false;
-        this.incomingMessages = new LinkedList<TMsg>();
+        this.incomingMessages = new ConcurrentLinkedQueue<TMsg>();
         this.incomingChannel = new ServerSocket(0);
         this.address = new Address("127.0.0.1", this.incomingChannel.getLocalPort());
         this.neighbors = new HashMap<>();
@@ -78,7 +81,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
         return this;
     }
 
-    public LinkedList<TMsg> getIncomingMessages(){
+    public ConcurrentLinkedQueue<TMsg> getIncomingMessages(){
         return this.incomingMessages;
     }
 
@@ -109,16 +112,29 @@ public abstract class Node<TMsg extends Message> extends Thread {
     }
 
     public void run(){
+        new Thread(this::processRemainingMessages).start();
+
         while(true){
             try {
                 Socket server = this.getIncomingChannel().accept();
                 DataInputStream in =
                         new DataInputStream(server.getInputStream());
                 TMsg msg = this.getDecoder().decode(in.readUTF());
-                this.getIncomingMessages().add(msg);
+                msg.setReceivedTime(System.currentTimeMillis());
 
-                // Starting message processing.
-                new Thread(this::processMessage).start();
+                synchronized (this.queueAccess) {
+                    if (getIncomingMessages().size() > 0) {
+                        getIncomingMessages().add(msg);
+                        msg = getIncomingMessages().poll();
+                    }
+
+                    final TMsg msgParam = msg;
+
+                    // Starting message processing.
+                    new Thread(() -> {
+                        processMessage(msgParam);
+                    }).start();
+                }
 
                 server.close();
             } catch (IOException e) {
@@ -128,11 +144,26 @@ public abstract class Node<TMsg extends Message> extends Thread {
         }
     }
 
+    private void processRemainingMessages(){
+        while(true){
+            synchronized (this.queueAccess) {
+                if (getIncomingMessages().size() > 0) {
+                    TMsg msg = getIncomingMessages().poll();
+
+                    // Starting message processing.
+                    new Thread(() -> {
+                        processMessage(msg);
+                    }).start();
+                }
+            }
+        }
+    }
+
     public abstract void sendMessage();
 
     public abstract void sendMessage(TMsg inputMsg);
 
-    protected abstract void processMessage();
+    protected abstract void processMessage(TMsg msg);
 
     @Override
     public String toString(){

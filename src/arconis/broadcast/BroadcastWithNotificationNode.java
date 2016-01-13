@@ -87,11 +87,12 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         }
     }
 
+    // Fix this code
     @Override
-    protected void processMessage() {
+    protected void processMessage(TMsg msg) {
         synchronized (this.lock) {
             this.setIsBusy(true);
-            TMsg inputMsg = this.getIncomingMessages().removeFirst();
+            TMsg inputMsg = this.getIncomingMessages().poll();
 
             switch (this.getNodeState()) {
                 case SLEEPING:
