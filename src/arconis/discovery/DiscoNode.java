@@ -145,10 +145,10 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     private boolean isAwakenTime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long firstRem = (receivedTime - this.initialTime) % this.firstPrime;
-        long secondRem = (receivedTime - this.initialTime) % this.secondPrime;
+        long firstRem = ((receivedTime - this.initialTime)/ intervalLength ) % this.firstPrime;
+        long secondRem = ((receivedTime - this.initialTime)/ intervalLength ) % this.secondPrime;
 
-        return firstRem <= intervalLength || secondRem <= intervalLength;
+        return firstRem == 0 || secondRem == 0;
     }
 
     private boolean shouldReceiveMessage(TMsg msg){
