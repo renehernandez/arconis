@@ -18,12 +18,12 @@ public class Main {
                 {3, 2},
                 {0, 0}
         };
-        ArrayList<DiscoNode<DiscoveryMessage>> network = ClassicNetworks.CompleteNetwork(
+        ArrayList<AccNode<AccMessage>> network = ClassicNetworks.CompleteNetwork(
                 (i) -> {
                     try {
-                        return new DiscoNode<>(
-                                i, DiscoveryMessage::create, DiscoveryMessage::decode,
-                                position[i][0], position[i][1], 1.5,0.1
+                        return new AccNode<>(
+                                i, AccMessage::create, AccMessage::decode,
+                                position[i][0], position[i][1], 1.5
                         );
                     } catch (IOException e) {
                         e.printStackTrace();
