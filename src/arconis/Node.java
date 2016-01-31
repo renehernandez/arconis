@@ -114,7 +114,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
     public void run(){
         new Thread(this::processRemainingMessages).start();
 
-        while(true){
+        while(workCondition()){
             try {
                 Socket server = this.getIncomingChannel().accept();
                 DataInputStream in =
@@ -145,7 +145,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
     }
 
     private void processRemainingMessages(){
-        while(true){
+        while(workCondition()){
             synchronized (this.queueAccess) {
                 if (getIncomingMessages().size() > 0) {
                     TMsg msg = getIncomingMessages().poll();
@@ -164,6 +164,8 @@ public abstract class Node<TMsg extends Message> extends Thread {
     public abstract void sendMessage(TMsg inputMsg);
 
     protected abstract void processMessage(TMsg msg);
+
+    protected abstract boolean workCondition();
 
     @Override
     public String toString(){

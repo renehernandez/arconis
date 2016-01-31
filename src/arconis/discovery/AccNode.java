@@ -83,7 +83,7 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     @Override
     public void sendMessage() {
         new Thread(() -> {
-            while (true) {
+            while (workCondition()) {
                 TMsg msg = this.getGenerator().generate("HELLO", this);
                 sendMessage(msg);
                 try {

@@ -56,7 +56,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
     @Override
     public void sendMessage() {
         new Thread(() -> {
-            while (true) {
+            while (workCondition()) {
                 sendMessage(this.getGenerator().generate("HELLO", this));
                 try {
                     sleep(5);
