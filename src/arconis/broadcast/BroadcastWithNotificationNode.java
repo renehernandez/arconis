@@ -131,7 +131,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
 
     // Fix this code
     @Override
-    protected boolean StopCondition(){
+    protected boolean workCondition(){
         return false;
     }
 

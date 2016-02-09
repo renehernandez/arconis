@@ -57,7 +57,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
     @Override
     public void sendMessage() {
         new Thread(() -> {
-            while (!StopCondition()) {
+            while (workCondition()) {
                 sendMessage(this.getGenerator().generate("HELLO", this));
                 try {
                     sleep(5);
@@ -103,7 +103,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
     }
 
     @Override
-    protected boolean StopCondition(){
+    protected boolean workCondition(){
         return false;
     }
 
@@ -151,10 +151,10 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     private boolean isAwakenTime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long firstRem = (receivedTime - this.initialTime) % this.firstPrime;
-        long secondRem = (receivedTime - this.initialTime) % this.secondPrime;
+        long firstRem = ((receivedTime - this.initialTime)/ intervalLength ) % this.firstPrime;
+        long secondRem = ((receivedTime - this.initialTime)/ intervalLength ) % this.secondPrime;
 
-        return firstRem <= intervalLength || secondRem <= intervalLength;
+        return firstRem == 0 || secondRem == 0;
     }
 
     private boolean shouldReceiveMessage(TMsg msg){

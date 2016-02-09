@@ -101,7 +101,7 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
     // Fix this code
     @Override
-    protected boolean StopCondition(){
+    protected boolean workCondition(){
         return false;
     }
 
