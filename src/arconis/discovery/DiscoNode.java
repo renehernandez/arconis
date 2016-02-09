@@ -1,8 +1,6 @@
 package arconis.discovery;
 
 import arconis.*;
-import arconis.delegates.*;
-import arconis.interfaces.*;
 
 import java.io.*;
 import java.net.*;
@@ -19,44 +17,47 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 //        TRANSMITTING
 //    }
 
-    static final int intervalLength = 5;
+    // Private Fields
 
+    static final int intervalLength = 5;
     ArrayList<Integer> primes;
     final static int MAX = 100000;
     int firstPrime;
     int secondPrime;
     double dutyCycle;
     long initialTime;
-//    Status status;
-
+    NetData netData;
     final Object lock = new Object();
-
     Set<Integer> knownNeighbors;
 
+    // Getters & Setters
 
-    public DiscoNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, double xPos, double yPos, double radius, double dutyCycle) throws Exception {
-        super(objectID, generator, decoder, xPos, yPos, radius);
+    public double getDutyCycle(){
+        return this.dutyCycle;
+    }
 
+    // Constructors
+
+    public DiscoNode(int objectID, MessageData<TMsg> msgData, NetData netData, PositionData posData, double dutyCycle) throws Exception {
+        super(objectID, msgData, posData);
+
+        this.netData = netData;
         this.knownNeighbors = Collections.synchronizedSet(new HashSet<>());
         this.primes = new ArrayList<>();
         this.eratosthenesSieve();
 
         this.dutyCycle = dutyCycle;
-//        this.status = Status.SLEEP;
-
         this.initialTime = System.currentTimeMillis();
 
         this.selectPrimes();
     }
 
-    public double getDutyCycle(){
-        return dutyCycle;
-    }
+    // Public Methods
 
     @Override
     public void sendMessage() {
         new Thread(() -> {
-            while (true) {
+            while (!StopCondition()) {
                 sendMessage(this.getGenerator().generate("HELLO", this));
                 try {
                     sleep(5);
@@ -91,7 +92,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         synchronized(this.lock) {
             this.setIsBusy(true);
             if (this.isAwakenTime(msg)) {
-//                System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
+                System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
                 if (this.shouldReceiveMessage(msg) && !this.knownNeighbors.contains(msg.getObjectID())) {
                     this.knownNeighbors.add(msg.getObjectID());
                     System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
@@ -101,7 +102,12 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         }
     }
 
-    // private methods
+    @Override
+    protected boolean StopCondition(){
+        return false;
+    }
+
+    // Private Methods
 
     private void eratosthenesSieve(){
         boolean[] mask = new boolean[DiscoNode.MAX];

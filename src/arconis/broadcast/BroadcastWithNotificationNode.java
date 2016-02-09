@@ -14,6 +14,18 @@ import java.util.stream.*;
  */
 public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TMsg> {
 
+    // Private Fields
+
+    State state;
+    final Object lock = new Object();
+    HashSet<String> receivedMessages;
+    HashMap<Integer, Boolean> confirmedNodes;
+    int alreadyConfirmed;
+    int parentObjectID;
+    boolean initiator;
+
+    // Public Enums
+
     public enum State{
         INITIATOR,
         SLEEPING,
@@ -26,25 +38,7 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         NOTIFY
     }
 
-
-    State state;
-
-    final Object lock = new Object();
-    HashSet<String> receivedMessages;
-    HashMap<Integer, Boolean> confirmedNodes;
-    int alreadyConfirmed;
-    int parentObjectID;
-    boolean initiator;
-
-    public BroadcastWithNotificationNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
-        super(objectID, generator, decoder);
-
-        this.receivedMessages = new HashSet<>();
-        this.state = State.SLEEPING;
-        this.confirmedNodes = new HashMap<>();
-        this.alreadyConfirmed = 0;
-        this.initiator = false;
-    }
+    // Getters & Setters
 
     public HashSet<String> getReceivedMessages(){
         return this.receivedMessages;
@@ -53,6 +47,32 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
     public State getNodeState() {
         return this.state;
     }
+
+    private BroadcastWithNotificationNode<TMsg> setNodeState(State state){
+        this.getLog().print("Changed state from: " + this.state + " to: " + state);
+        this.state = state;
+        return this;
+    }
+
+    private BroadcastWithNotificationNode<TMsg> setParentNode(int parentObjectID){
+        this.parentObjectID = parentObjectID;
+        this.getLog().print("Set Node: " + this.getObjectID() + ", Parent: " + this.parentObjectID);
+        return this;
+    }
+
+    // Constructors
+
+    public BroadcastWithNotificationNode(int objectID, MessageData<TMsg> msgData) throws IOException {
+        super(objectID, msgData);
+
+        this.receivedMessages = new HashSet<>();
+        this.state = State.SLEEPING;
+        this.confirmedNodes = new HashMap<>();
+        this.alreadyConfirmed = 0;
+        this.initiator = false;
+    }
+
+    // Public Methods
 
     @Override
     public void sendMessage(){
@@ -109,7 +129,13 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         }
     }
 
-    // Private methods
+    // Fix this code
+    @Override
+    protected boolean StopCondition(){
+        return false;
+    }
+
+    // Private Methods
 
     private void handleSLEEPING(TMsg inputMsg){
         this.setParentNode(inputMsg.getObjectID());
@@ -192,16 +218,4 @@ public class BroadcastWithNotificationNode<TMsg extends Message> extends Node<TM
         }
     }
 
-
-    private BroadcastWithNotificationNode<TMsg> setNodeState(State state){
-        this.getLog().print("Changed state from: " + this.state + " to: " + state);
-        this.state = state;
-        return this;
-    }
-
-    private BroadcastWithNotificationNode<TMsg> setParentNode(int parentObjectID){
-        this.parentObjectID = parentObjectID;
-        this.getLog().print("Set Node: " + this.getObjectID() + ", Parent: " + this.parentObjectID);
-        return this;
-    }
 }

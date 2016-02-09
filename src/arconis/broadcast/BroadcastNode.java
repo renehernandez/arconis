@@ -12,22 +12,32 @@ import arconis.interfaces.*;
 
 public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
-    public enum Message {
-        HELLO
-    }
+    // Private Fields
 
     final Object lock = new Object();
     HashSet<String> receivedMessages;
 
-    public BroadcastNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
-        super(objectID, generator, decoder);
+    // Public Enums
 
-        this.receivedMessages = new HashSet<>();
+    public enum Message {
+        HELLO
     }
+
+    // Getters & Setters
 
     public HashSet<String> getReceivedMessages(){
         return this.receivedMessages;
     }
+
+    // Constructors
+
+    public BroadcastNode(int objectID, MessageData msgData) throws IOException {
+        super(objectID, msgData);
+
+        this.receivedMessages = new HashSet<>();
+    }
+
+    // Public Methods
 
     @Override
     public void sendMessage(){
@@ -58,6 +68,8 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
         }
     }
 
+    // Protected Methods
+
     // Fix this code
     @Override
     protected void processMessage(TMsg msg){
@@ -85,6 +97,12 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
             this.setIsBusy(false);
         }
+    }
+
+    // Fix this code
+    @Override
+    protected boolean StopCondition(){
+        return false;
     }
 
     // Private Methods

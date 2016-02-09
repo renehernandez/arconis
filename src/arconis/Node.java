@@ -13,43 +13,26 @@ import java.util.concurrent.*;
 
 public abstract class Node<TMsg extends Message> extends Thread {
 
+    // Private Fields
+
     int objectID; // This for object differentiation, not confuse with unique IDs in a network.
     boolean isBusy;
-
     Address address;
     ServerSocket incomingChannel;
     ConcurrentLinkedQueue<TMsg> incomingMessages;
     HashMap<Integer, Address> neighbors;
-    MessageGenerator<TMsg> generator;
-    MessageDecoder<TMsg> decoder;
-    Benchmark benchmark;
-    Log log;
-
+    MessageData<TMsg> msgData;
+    UtilityData utils;
     final Object queueAccess = new Object();
 
-    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, Log log, Benchmark benchmark) throws IOException{
-        this.objectID = objectID;
-        this.isBusy = false;
-        this.incomingMessages = new ConcurrentLinkedQueue<TMsg>();
-        this.incomingChannel = new ServerSocket(0);
-        this.address = new Address("127.0.0.1", this.incomingChannel.getLocalPort());
-        this.neighbors = new HashMap<>();
-        this.generator = generator;
-        this.decoder = decoder;
-        this.log = log;
-        this.benchmark = benchmark;
-    }
-
-    public Node(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder) throws IOException {
-        this(objectID, generator, decoder, new ConsoleLog(), new Benchmark());
-    }
+    // Getters & Setters
 
     public Benchmark getBenchmark(){
-        return this.benchmark;
+        return this.utils.getBenchmark();
     }
 
     public Log getLog(){
-        return this.log;
+        return this.utils.getLog();
     }
 
     public Address getAddress(){
@@ -85,22 +68,12 @@ public abstract class Node<TMsg extends Message> extends Thread {
         return this.incomingMessages;
     }
 
-    public Node<TMsg> addNeighbor(Node<TMsg> v){
-        this.neighbors.put(v.getObjectID(), v.getAddress());
-        return this;
-    }
-
-    public Node<TMsg> removeNeighbor(Node<TMsg> v){
-        this.neighbors.remove(v.getObjectID());
-        return this;
-    }
-
     public MessageGenerator<TMsg> getGenerator(){
-        return this.generator;
+        return this.msgData.getGenerator();
     }
 
     public MessageDecoder<TMsg> getDecoder(){
-        return this.decoder;
+        return this.msgData.getDecoder();
     }
 
     public ServerSocket getIncomingChannel(){
@@ -111,10 +84,39 @@ public abstract class Node<TMsg extends Message> extends Thread {
         return new Socket(host, port);
     }
 
+    // Constructors
+
+    public Node(int objectID, MessageData<TMsg> msgData, UtilityData utils) throws IOException{
+        this.objectID = objectID;
+        this.isBusy = false;
+        this.incomingMessages = new ConcurrentLinkedQueue<>();
+        this.incomingChannel = new ServerSocket(0);
+        this.address = new Address("127.0.0.1", this.incomingChannel.getLocalPort());
+        this.neighbors = new HashMap<>();
+        this.msgData = msgData;
+        this.utils = utils;
+    }
+
+    public Node(int objectID, MessageData<TMsg> msgData) throws IOException {
+        this(objectID, msgData, UtilityData.DefaultUtility());
+    }
+
+    // Public methods
+
+    public Node<TMsg> addNeighbor(Node<TMsg> v){
+        this.neighbors.put(v.getObjectID(), v.getAddress());
+        return this;
+    }
+
+    public Node<TMsg> removeNeighbor(Node<TMsg> v){
+        this.neighbors.remove(v.getObjectID());
+        return this;
+    }
+
     public void run(){
         new Thread(this::processRemainingMessages).start();
 
-        while(true){
+        while(StopCondition()){
             try {
                 Socket server = this.getIncomingChannel().accept();
                 DataInputStream in =
@@ -144,8 +146,25 @@ public abstract class Node<TMsg extends Message> extends Thread {
         }
     }
 
+    @Override
+    public String toString(){
+        return "<objectID: " + this.objectID + ">";
+    }
+
+    public abstract void sendMessage();
+
+    public abstract void sendMessage(TMsg inputMsg);
+
+    // Protected Methods
+
+    protected abstract void processMessage(TMsg msg);
+
+    protected abstract boolean StopCondition();
+
+    // Private Methods
+
     private void processRemainingMessages(){
-        while(true){
+        while(!StopCondition()){
             synchronized (this.queueAccess) {
                 if (getIncomingMessages().size() > 0) {
                     TMsg msg = getIncomingMessages().poll();
@@ -157,17 +176,6 @@ public abstract class Node<TMsg extends Message> extends Thread {
                 }
             }
         }
-    }
-
-    public abstract void sendMessage();
-
-    public abstract void sendMessage(TMsg inputMsg);
-
-    protected abstract void processMessage(TMsg msg);
-
-    @Override
-    public String toString(){
-        return "<objectID: " + this.objectID + ">";
     }
 
 }

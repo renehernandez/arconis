@@ -4,18 +4,27 @@ import arconis.*;
 import arconis.benchmark.*;
 import arconis.delegates.*;
 import arconis.interfaces.*;
-import arconis.log.*;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
-import java.util.stream.*;
 
 /**
  * Created by aegis on 16/12/15.
  */
 public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg> {
 
+    // Private Fields
+
+    State state;
+    HashSet<String> receivedMessages;
+    int ID;
+    int minimumID;
+    int currentDistance;
+    int receivedBack; // keeping track if I received both returned messages
+    final Object lock = new Object();
+
+    // Public Enums
     public enum State{
         SLEEPING,
         ACTIVE,
@@ -27,24 +36,7 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         NOTIFY
     }
 
-    State state;
-
-    final Object lock = new Object();
-    HashSet<String> receivedMessages;
-    int ID;
-    int minimumID;
-    int currentDistance;
-    int receivedBack; // keeping track if I received both returned messages
-
-    public ControlledElectionNode(int objectID, MessageGenerator generator, MessageDecoder decoder, int ID) throws IOException {
-        super(objectID, generator, decoder);
-        this.ID = ID;
-        this.minimumID = this.ID;
-        this.receivedMessages = new HashSet<>();
-        this.state = State.SLEEPING;
-        this.currentDistance = 1;
-        this.receivedBack = 0;
-    }
+    // Getters & Setters
 
     public int getID(){
         return this.ID;
@@ -66,6 +58,36 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         return this.currentDistance;
     }
 
+    private ControlledElectionNode<TMsg> setNodeState(State state){
+//        this.getLog().print(this.toString() + " Changed state from: " + this.state + " to: " + state);
+        this.state = state;
+        return this;
+    }
+
+    private ControlledElectionNode<TMsg> setCurrentDistance(int distance){
+        this.currentDistance = distance;
+        return this;
+    }
+
+    private ControlledElectionNode<TMsg> setMinimunID(int ID) {
+        this.minimumID = ID;
+        return this;
+    }
+
+    // Constructors
+
+    public ControlledElectionNode(int objectID, MessageData<TMsg> msgData, int ID) throws IOException {
+        super(objectID, msgData);
+        this.ID = ID;
+        this.minimumID = this.ID;
+        this.receivedMessages = new HashSet<>();
+        this.state = State.SLEEPING;
+        this.currentDistance = 1;
+        this.receivedBack = 0;
+    }
+
+    // Public Methods
+
     @Override
     public void sendMessage() {
         sendMessage(this.getGenerator().generate(this.getID() + ":FORWARD:LEFT:" + this.getCurrentDistance(), this));
@@ -78,6 +100,8 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
             releaseMessage(inputMsg);
         }
     }
+
+    // Protected Methods
 
     // Fix this code
     @Override
@@ -104,6 +128,12 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
             }
             this.setIsBusy(false);
         }
+    }
+
+    // Fix this code
+    @Override
+    protected boolean StopCondition(){
+        return false;
     }
 
     // Private methods
@@ -278,22 +308,6 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
         this.getLog().print(this.toString() + " Number of Messages: " + this.getBenchmark().getNumberOfMessages() + "\nTime Elapsed: " + this.getBenchmark().getTimeElapsed() + "\n");
         this.setNodeState(State.DONE);
 
-        return this;
-    }
-
-    private ControlledElectionNode<TMsg> setNodeState(State state){
-//        this.getLog().print(this.toString() + " Changed state from: " + this.state + " to: " + state);
-        this.state = state;
-        return this;
-    }
-
-    private ControlledElectionNode<TMsg> setCurrentDistance(int distance){
-        this.currentDistance = distance;
-        return this;
-    }
-
-    private ControlledElectionNode<TMsg> setMinimunID(int ID){
-        this.minimumID = ID;
         return this;
     }
 

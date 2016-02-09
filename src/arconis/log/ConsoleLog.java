@@ -5,6 +5,8 @@ package arconis.log;
  */
 public class ConsoleLog extends Log {
 
+    // Public Methods
+
     @Override
     public void print(String msg){
         long threadID = Thread.currentThread().getId();
