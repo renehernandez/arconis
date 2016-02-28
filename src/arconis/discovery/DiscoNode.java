@@ -53,6 +53,10 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         return dutyCycle;
     }
 
+    public void setStartTime() {
+        this.initialTime = System.currentTimeMillis();
+    }
+
     @Override
     public void sendMessage() {
         new Thread(() -> {
@@ -100,6 +104,9 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
             this.setIsBusy(false);
         }
     }
+
+    @Override
+    public boolean workCondition(){return true;}
 
     // private methods
 

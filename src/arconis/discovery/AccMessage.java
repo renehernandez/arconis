@@ -11,22 +11,25 @@ import java.util.List;
  */
 public class AccMessage extends Message {
 
+    String content;
     double xPos, yPos, radius;
     List<NeighborItem> items;
+    int localCounter;
 
-    public AccMessage(int objectID, double xPos, double yPos, double radius, List<NeighborItem> items){
+    public AccMessage(int objectID, double xPos, double yPos, double radius, int localCounter, List<NeighborItem> items){
         super(objectID, System.currentTimeMillis());
         this.xPos = xPos;
         this.yPos = yPos;
         this.radius = radius;
         this.items = items;
+        this.localCounter = localCounter;
     }
 
     public static AccMessage decode(String msgEncoded){
         String[] data = msgEncoded.split(":");
         ArrayList<NeighborItem> items = new ArrayList<>();
 
-        for(int i = 4; i <= data.length - 4; i+= 4)
+        for(int i = 5; i <= data.length - 5; i+= 4)
         {
             items.add(new NeighborItem(
                     Integer.parseInt(data[i]),
@@ -38,13 +41,13 @@ public class AccMessage extends Message {
 
         return new AccMessage(Integer.parseInt(data[0]),
                 Double.parseDouble(data[1]), Double.parseDouble(data[2]),
-                Double.parseDouble(data[3]),items);
+                Double.parseDouble(data[3]), Integer.parseInt(data[4]),items);
     }
 
     public static AccMessage create(String content, Node<AccMessage> node) {
         AccNode<AccMessage> realNode = (AccNode<AccMessage>)node;
         return new AccMessage(realNode.getObjectID(), realNode.getXPos(), realNode.getYPos(),
-                realNode.getRadius(), realNode.getKnownNeighbors());
+                realNode.getRadius(),realNode.getCounter(), realNode.getKnownNeighbors());
     }
 
 
@@ -60,10 +63,10 @@ public class AccMessage extends Message {
         return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + content;
     }
 
-//    @Override
-//    public String getContent() {
-//        return this.content;
-//    }
+    @Override
+    public String getContent() {
+        return this.content;
+    }
 
     public double getXPos(){
         return this.xPos;
@@ -75,6 +78,14 @@ public class AccMessage extends Message {
 
     public double getRadius(){
         return this.radius;
+    }
+
+    public List<NeighborItem> getNeighborTable(){
+        return this.items;
+    }
+
+    public int  getCounter(){
+        return this.localCounter;
     }
 
     @Override
@@ -94,8 +105,4 @@ public class AccMessage extends Message {
                 && xPos == msg.getXPos() && yPos == msg.getYPos() && radius == msg.getRadius();
     }
 
-    @Override
-    public String toString(){
-        return "<objectID:" + objectID + " | xPos:" + xPos + " | yPos:" + yPos + ">";
-    }
 }

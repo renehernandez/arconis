@@ -80,6 +80,10 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         return primes;
     }
 
+    public void setStartTime() {
+        this.initialTime = System.currentTimeMillis();
+    }
+
     @Override
     public void sendMessage() {
         new Thread(() -> {
@@ -128,8 +132,9 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
             this.setIsBusy(true);
             if (this.isAwakenTime(msg)) {
 //                System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
-                if (this.shouldReceiveMessage(msg) && !this.knownNeighbors.contains(msg.getObjectID())) {
-                    this.knownNeighbors.add(msg.getObjectID());
+                if (this.shouldReceiveMessage(msg)) {
+                    //this.knownNeighbors.add(msg.getObjectID());
+                    updateMyNeighborTable(msg.getObjectID(),msg.getCounter(), msg.getNeighborTable());
                     System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
                 }
             }
@@ -171,6 +176,9 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         secondPrime = 43;
 
     }
+
+    @Override
+    public boolean workCondition(){return true;}
 
     private double distFrom(double x, double y){
         double xDiff = this.getXPos() - x;
@@ -269,16 +277,14 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     }
 
 
-    public void updateMyNeighborTable(Node otherWakeupNode) {
-        String idOfCurrentNeighborEntry;
+    public void updateMyNeighborTable(int idOfOtherWakeupNode, int counterOfOtherWakeupNode, List<NeighborItem> NeighborsOfOtherWakeupNode) {
+        int idOfCurrentNeighborEntry;
         int hopsdOfCurrentNeighborEntry;
         int offsetdOfCurrentNeighborEntry;
         String dutycyclefCurrentNeighborEntry;
 
         int hopsdOfotherWakeupNode = 0;
-
-        ArrayList<NeighborItem> NeighborsOfOtherWakeupNode = otherWakeupNode.getNeighbors();
-        if (localId == "SOURCENODE"){
+        /*if (localId == "SOURCENODE"){
             hopsdOfotherWakeupNode =  getHopsOfNode(otherWakeupNode.getId());
 
             switch (hopsdOfotherWakeupNode) {
@@ -288,16 +294,16 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                     break;
                 default: break;
             }
-        }
+        }*/
 
         for (NeighborItem neighborEntry : NeighborsOfOtherWakeupNode) {
-            if (neighborEntry.getId()!= localId){ //current neighbor entry is not current node
+            if (neighborEntry.getId()!= this.getId()){ //current neighbor entry is not current node
                 if (!knownNeighbors.contains(neighborEntry)){  //neighbor NOT in the localNeighborTable
                     hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
                     if (hopsdOfCurrentNeighborEntry <=3){ // only keep neighbors with max 3 hops
                         idOfCurrentNeighborEntry= neighborEntry.getId();
                         dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
-                        if (neighborEntry.getId() == otherWakeupNode.getId()){ // current neighbor entry is the node sending this message
+                        if (neighborEntry.getId() == idOfOtherWakeupNode){ // current neighbor entry is the node sending this message
                             offsetdOfCurrentNeighborEntry = localCounter -  otherWakeupNode.getCounter();
                         }
                         else{// current neighbor entry is NOT the node sending this message

@@ -7,9 +7,13 @@ import arconis.benchmark.*;
 import arconis.discovery.*;
 import arconis.generators.*;
 
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         double[][] position = new double[][] {
                 {1, 2},
@@ -38,7 +42,10 @@ public class Main {
 
         for(int i = 0; i < network.size(); i++) {
 //            System.out.println(network.get(3).getObjectID());
+            network.get(i).setStartTime();
             network.get(i).sendMessage();
+            int random = (int )(Math.random() * 30 + 1); //generate int between 1..30
+            Thread.sleep(5 * random);
         }
 
     }
