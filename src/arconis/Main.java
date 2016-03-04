@@ -42,7 +42,7 @@ public class Main {
 
         for(int i = 0; i < network.size(); i++) {
 //            System.out.println(network.get(3).getObjectID());
-            network.get(i).setStartTime();
+            network.get(i).setInitialTime();
             network.get(i).sendMessage();
             int random = (int )(Math.random() * 30 + 1); //generate int between 1..30
             Thread.sleep(5 * random);

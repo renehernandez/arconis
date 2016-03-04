@@ -6,7 +6,7 @@ package arconis.discovery;
 public class NeighborItem {
     private int id;
     private int hops;
-    private int offset;
+    private long initialtime;
     private String dutycycle;
 
     /**
@@ -35,16 +35,16 @@ public class NeighborItem {
     }
 
     /**
-     * @return the offset
+     * @return the initialtime
      */
-    public int getOffset() {
-        return offset;
+    public long getInitialtime() {
+        return initialtime;
     }
     /**
-     * @param offset the offset to set
+     * @param initialtime the initialtime to set
      */
-    public void setOffset(int offset) {
-        this.offset = offset;
+    public void setInitialtime(long initialtime) {
+        this.initialtime = initialtime;
     }
 
     /**
@@ -61,7 +61,7 @@ public class NeighborItem {
     public int[] getDutycycles() {
         int dutycycles[] = new int[2];
         String[] temp;
-        temp = dutycycle.split(":");
+        temp = dutycycle.split(",");
         for(int i =0; i < temp.length ; i++){
             dutycycles[i]= Integer.parseInt(temp[i]);
         }
@@ -76,15 +76,15 @@ public class NeighborItem {
 
 
 
-    public NeighborItem(int id, int hops, int offset, String dutycycle) {
+    public NeighborItem(int id, int hops, long initialtime, String dutycycle) {
         this.id = id;
         this.hops = hops;
-        this.offset = offset;
+        this.initialtime = initialtime;
         this.dutycycle = dutycycle;
     }
 
     @Override
     public String toString(){
-        return this.id + ":" + this.hops + ":" + this.offset + ":" + this.dutycycle;
+        return this.id + ":" + this.hops + ":" + this.initialtime + ":" + this.dutycycle;
     }
 }
