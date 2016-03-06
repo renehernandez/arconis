@@ -217,8 +217,8 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     }
 	
 	private boolean isAwakenTimeAtExtraPrime(long receivedTime, long initialTime, int extraPrime){
-        double extraRem = Math.floor((receivedTime - initialTime) / intervalLength) / extraPrime;
-        return extraRem == 1;
+        long extraRem = (receivedTime - initialTime) / intervalLength;
+        return extraRem == extraPrime;
     }
 
     private boolean shouldReceiveMessage(TMsg msg){
