@@ -104,7 +104,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     @Override
     protected boolean workCondition(){
-        return false;
+        return true;
     }
 
     // Private Methods
