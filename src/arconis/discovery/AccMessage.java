@@ -18,7 +18,9 @@ public class AccMessage extends Message {
 	int firstPrime;
 	int secondPrime;
 
-    public AccMessage(int objectID, double xPos, double yPos, double radius, long initialTime, int firstPrime, int secondPrime, List<NeighborItem> items){
+    public AccMessage(int objectID, double xPos, double yPos, double radius,
+                      long initialTime, int firstPrime, int secondPrime, List<NeighborItem> items,
+                      String content){
         super(objectID, System.currentTimeMillis());
         this.xPos = xPos;
         this.yPos = yPos;
@@ -27,43 +29,51 @@ public class AccMessage extends Message {
 		this.firstPrime=firstPrime;
 		this.secondPrime=secondPrime;
         this.neighbors = items;
+        this.content = content;
     }
 
     public static AccMessage decode(String msgEncoded){
         String[] data = msgEncoded.split(":");
         ArrayList<NeighborItem> items = new ArrayList<>();
 
-        for(int i = 7; i <= data.length - 7; i+= 4)
-        {
-            items.add(new NeighborItem(
-                    Integer.parseInt(data[i]),
-                    Integer.parseInt(data[i + 1]),
-                    Integer.parseInt(data[i + 2]),
-                    data[i + 3]
-                    ));
+        if(!data[7].equals("_")) {
+            for (int i = 7; i < data.length - 1; i += 4) {
+                items.add(new NeighborItem(
+                        Integer.parseInt(data[i]),
+                        Integer.parseInt(data[i + 1]),
+                        Integer.parseInt(data[i + 2]),
+                        data[i + 3]
+                ));
+            }
         }
 
-        return new AccMessage(Integer.parseInt(data[0]),Double.parseDouble(data[1]), Double.parseDouble(data[2]),
-							  Double.parseDouble(data[3]), Long.parseLong(data[4]), Integer.parseInt(data[5]),Integer.parseInt(data[6]), items);
+        return new AccMessage(Integer.parseInt(data[0]),Double.parseDouble(data[1]),
+                Double.parseDouble(data[2]), Double.parseDouble(data[3]), Long.parseLong(data[4]),
+                Integer.parseInt(data[5]),Integer.parseInt(data[6]), items, data[data.length - 1]);
     }
 
     public static AccMessage create(String content, Node<AccMessage> node) {
         AccNode<AccMessage> realNode = (AccNode<AccMessage>)node;
         return new AccMessage(realNode.getObjectID(), realNode.getXPos(), realNode.getYPos(),
-                realNode.getRadius(),realNode.getInitialTime(), realNode.getFirstPrime(), realNode.getSecondPrime(), realNode.getKnownNeighbors());
+                realNode.getRadius(),realNode.getInitialTime(), realNode.getFirstPrime(),
+                realNode.getSecondPrime(), realNode.getKnownNeighbors(), content);
     }
 
 
     @Override
     public String encode() {
-        String content = "";
+        String neighborsString = "_";
 
-        for(int i = 0; i < neighbors.size() - 1; i++){
-            content += neighbors.get(i).toString() + ":";
+        if(neighbors.size() > 0) {
+            neighborsString = "";
+            for (int i = 0; i < neighbors.size() - 1; i++) {
+                neighborsString += neighbors.get(i).toString() + ":";
+            }
+            neighborsString += neighbors.get(neighbors.size() - 1).toString();
         }
-        content += neighbors.get(neighbors.size() - 1).toString();
 
-        return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + initialTime + ":" + firstPrime + ":"+ secondPrime + ":"+ content;
+        return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + initialTime + ":"
+                + firstPrime + ":"+ secondPrime + ":"+ neighborsString + ":" + content;
     }
 
     @Override

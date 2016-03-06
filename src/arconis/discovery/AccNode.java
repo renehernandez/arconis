@@ -132,7 +132,9 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 			
             if(this.isAwakenTime() || this.isAwakenTimeAtExtraPrime()){
                 System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
-                if (!this.isAwakenTimeAtExtraPrime()){setExtraPrime(System.currentTimeMillis());} //fixme
+                if (!this.isAwakenTimeAtExtraPrime()){
+                    setExtraPrime(System.currentTimeMillis());
+                } //fixme
 				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
 //                    if(knownNeighbors.contains(entry.getKey()))
 //                        continue;
