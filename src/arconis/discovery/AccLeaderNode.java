@@ -1,17 +1,20 @@
 package arconis.discovery;
 
-import arconis.*;
-import arconis.delegates.*;
-import arconis.interfaces.*;
+import arconis.Address;
+import arconis.delegates.MessageDecoder;
+import arconis.delegates.MessageGenerator;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.DataOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by aegis on 02/12/15.
  */
-public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
+public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 
 //    public enum Status {
 //        SLEEP,
@@ -51,7 +54,7 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     //Set<Integer> knownNeighbors;
 
 
-    public AccNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, double xPos, double yPos, double radius) throws Exception {
+    public AccLeaderNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, double xPos, double yPos, double radius) throws Exception {
         super(objectID, generator, decoder, xPos, yPos, radius);
 
         this.knownNeighbors = Collections.synchronizedList(new ArrayList<>());
@@ -132,6 +135,9 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 			
             if(this.isAwakenTime() || this.isAwakenTimeAtExtraPrime()){
                 System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
+                if (!this.isAwakenTimeAtExtraPrime()){
+                    setExtraPrime(System.currentTimeMillis());
+                } //fixme
 				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
 //                    if(knownNeighbors.contains(entry.getKey()))
 //                        continue;
@@ -262,6 +268,16 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         long initialtimeOfCurrentNeighborEntry;
         String dutycyclefCurrentNeighborEntry;
 
+        int hopsdOfSendingNode = 0;
+        hopsdOfSendingNode =  getHopsOfNode(idOfSendingNode);
+
+        switch (hopsdOfSendingNode) {
+             case 2:  numberOfNewNeighborFrom2HopsNeighbors++;
+                  break;
+             case 3:  numberOfNewNeighborFrom3HopsNeighbors++;
+                  break;
+             default: break;
+        }
 		if (!knownNeighbors.contains(idOfSendingNode)){
 			 knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
 		}
@@ -277,6 +293,16 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                     dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
                     initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
                     knownNeighbors.add(new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
+                        switch (hopsdOfSendingNode) {
+                                case 1:  numberOfNewInformationFrom1HopsNeighbors++;
+                                    break;
+                                case 2:  numberOfNewInformationFrom2HopsNeighbors++;
+                                    break;
+                                case 3:  numberOfNewInformationFrom3HopsNeighbors++;
+                                    break;
+
+                                default: break;
+                            }
                 }
             } else {  //neighbor in the localNeighborTable
                 hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
@@ -285,9 +311,108 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                     dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
                     initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
                     knownNeighbors.set(knownNeighbors.indexOf(neighborEntry), new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
+                            switch (hopsdOfSendingNode) {
+                                case 1:  numberOfNewInformationFrom1HopsNeighbors++;
+                                    break;
+                                case 2:  numberOfNewInformationFrom2HopsNeighbors++;
+                                    break;
+                                case 3:  numberOfNewInformationFrom3HopsNeighbors++;
+                                    break;
+
+                                default: break;
+                            }
                 }
             }
     }
 
+
+    private int getHopsOfNode(int id) {
+        int hops=0;
+
+        for (NeighborItem neighborEntry : knownNeighbors)
+            if (neighborEntry.getId() == id) {
+                hops = neighborEntry.getHops();
+            }
+
+        return hops;
+    }
+
+    public void setExtraPrime(long startTime) {
+        List<Long> timeslots = new ArrayList<Long>();
+		long timeslot = startTime + 5;
+		double gainOfCurrentTimeSlot=0;
+		double gainOfPreviousTimeSlot=0;
+
+		while(!isAwakenTime(timeslot, this.initialTime, this.firstPrime, this.secondPrime)){
+            timeslots.add(timeslot);
+			timeslot = timeslot + 5;
+		}
+
+        if (timeslots.size() > 20){
+
+            for (int i=0; i<timeslots.size();i++){
+                gainOfCurrentTimeSlot = getPointOfTimeslot(timeslots.get(i));
+                if (gainOfCurrentTimeSlot  > 0 && gainOfCurrentTimeSlot > gainOfPreviousTimeSlot){
+                    extraPrime = (int)((timeslots.get(i) - this.initialTime) / this.intervalLength);
+                }
+                gainOfPreviousTimeSlot = gainOfCurrentTimeSlot;
+            }
+        }
+
+    }
+
+    private double getPointOfTimeslot(long timeslot) {
+        int hopsdOfCurrentNeighborEntry;
+        long initialtimeOfCurrentNeighborEntry;
+        int dutycyclefCurrentNeighborEntry1;
+        int dutycyclefCurrentNeighborEntry2;
+        int wakeupCountOf1HopNeighbors=0;
+        int wakeupCountOf2HopNeighbors=0;
+        int wakeupCountOf3HopNeighbors=0;
+        double point=0;
+
+        for (NeighborItem neighborEntry : knownNeighbors) {
+            dutycyclefCurrentNeighborEntry1 = neighborEntry.getDutycycles()[0];
+            dutycyclefCurrentNeighborEntry2 = neighborEntry.getDutycycles()[1];
+            initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
+            hopsdOfCurrentNeighborEntry = neighborEntry.getHops();
+            boolean wakeupCondition = false;
+            if (isAwakenTime(timeslot, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry1, dutycyclefCurrentNeighborEntry2)){//if the node of current neighbor entry will awake at this timeslot
+                    wakeupCondition=true;
+                 }
+ 
+                if (wakeupCondition){//if the node of current neighbor entry will awake at this timeslot
+                    switch (hopsdOfCurrentNeighborEntry) {
+                        case 1: wakeupCountOf1HopNeighbors ++ ;
+                            break;
+                        case 2: wakeupCountOf2HopNeighbors ++ ;
+                            break;
+                        case 3: wakeupCountOf3HopNeighbors ++ ;
+                            break;
+                        default: break ;
+                    }
+            }
+        }
+
+        point = 0.6 * (weightOfDirectGainFrom2HopsNeighbors * wakeupCountOf2HopNeighbors + weightOfDirectGainFrom3HopsNeighbors * wakeupCountOf3HopNeighbors ) +
+                0.4 * (weightOfIndirectGainFromFrom1HopsNeighbors * wakeupCountOf1HopNeighbors + weightOfIndirectGainFromFrom2HopsNeighbors * wakeupCountOf2HopNeighbors + weightOfIndirectGainFromFrom3HopsNeighbors * wakeupCountOf3HopNeighbors );
+
+        return point;
+    }
+
+
+    public void adjustWeight() {
+        if ((numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) > 0){
+            weightOfDirectGainFrom2HopsNeighbors = (weightOfDirectGainFrom2HopsNeighbors + numberOfNewNeighborFrom2HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
+            weightOfDirectGainFrom3HopsNeighbors = (weightOfDirectGainFrom3HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
+        }
+
+        if ((numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) > 0){
+            weightOfIndirectGainFromFrom1HopsNeighbors = (weightOfIndirectGainFromFrom1HopsNeighbors + numberOfNewInformationFrom1HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+            weightOfIndirectGainFromFrom2HopsNeighbors = (weightOfIndirectGainFromFrom2HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+            weightOfIndirectGainFromFrom3HopsNeighbors = (weightOfIndirectGainFromFrom3HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+        }
+
+    }
 
 }

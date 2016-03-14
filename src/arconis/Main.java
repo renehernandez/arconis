@@ -25,10 +25,18 @@ public class Main {
         ArrayList<AccNode<AccMessage>> network = ClassicNetworks.CompleteNetwork(
                 (i) -> {
                     try {
-                        return new AccNode<>(
-                                i, AccMessage::create, AccMessage::decode,
-                                position[i][0], position[i][1], 1.5
-                        );
+                        if (i==0){
+                            return new AccLeaderNode<>(
+                                    i, AccMessage::create, AccMessage::decode,
+                                    position[i][0], position[i][1], 1.5
+                            );
+                        }else{
+                            return new AccNode<>(
+                                    i, AccMessage::create, AccMessage::decode,
+                                    position[i][0], position[i][1], 1.5
+                            );
+                        }
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch(Exception e){
