@@ -132,7 +132,7 @@ public class ControlledElectionNode<TMsg extends Message> extends RingNode<TMsg>
 
     // Fix this code
     @Override
-    protected boolean StopCondition(){
+    protected boolean workCondition(){
         return false;
     }
 

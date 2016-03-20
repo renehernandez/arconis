@@ -26,7 +26,7 @@ public class Main {
                                 i, new MessageData<>(DiscoveryMessage::create, DiscoveryMessage::decode),
                                 netData,
                                 new PositionData(positions[i][0], positions[i][1], 1.5),
-                                0.1
+                                0.2
                         );
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -45,13 +45,13 @@ public class Main {
         }
     }
 
-    public static double[][] GenerateTest(int points, double xCenter, double yCenter, double radius){
-        double[][] positions = new double[points][2];
+    public static double[][] GenerateTest(int pointsNumber, double xCenter, double yCenter, double radius){
+        double[][] positions = new double[pointsNumber][2];
         Random r = new Random();
 
-        int xSign = 1, ySign = 1;
+        int xSign, ySign;
 
-        for(int i = 0; i < points; i++){
+        for(int i = 0; i < pointsNumber; i++){
             xSign = r.nextDouble() > 0.5 ? -1 : 1;
             ySign = r.nextDouble() > 0.5 ? -1 : 1;
             positions[i][0] = xSign * Math.abs(radius - xCenter) * r.nextDouble();

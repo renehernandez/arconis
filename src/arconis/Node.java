@@ -114,31 +114,14 @@ public abstract class Node<TMsg extends Message> extends Thread {
     }
 
     public void run(){
-        new Thread(this::processRemainingMessages).start();
+        new Thread(this::processEnqueuedMessages).start();
 
-        while(StopCondition()){
+        while(workCondition()){
             try {
                 Socket server = this.getIncomingChannel().accept();
-                DataInputStream in =
-                        new DataInputStream(server.getInputStream());
-                TMsg msg = this.getDecoder().decode(in.readUTF());
-                msg.setReceivedTime(System.currentTimeMillis());
-
-                synchronized (this.queueAccess) {
-                    if (getIncomingMessages().size() > 0) {
-                        getIncomingMessages().add(msg);
-                        msg = getIncomingMessages().poll();
-                    }
-
-                    final TMsg msgParam = msg;
-
-                    // Starting message processing.
-                    new Thread(() -> {
-                        processMessage(msgParam);
-                    }).start();
-                }
-
-                server.close();
+                new Thread(() -> {
+                    processIncomingMessage(server);
+                }).start();
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -159,22 +142,52 @@ public abstract class Node<TMsg extends Message> extends Thread {
 
     protected abstract void processMessage(TMsg msg);
 
-    protected abstract boolean StopCondition();
+    protected abstract boolean workCondition();
+
+    protected boolean canProcessMessage(TMsg msg){
+        return true;
+    }
+
 
     // Private Methods
 
-    private void processRemainingMessages(){
-        while(!StopCondition()){
+    private void processEnqueuedMessages(){
+        while(workCondition()){
             synchronized (this.queueAccess) {
                 if (getIncomingMessages().size() > 0) {
                     TMsg msg = getIncomingMessages().poll();
-
-                    // Starting message processing.
-                    new Thread(() -> {
+                    if (canProcessMessage(msg)) {
+                        // Starting message processing.
                         processMessage(msg);
-                    }).start();
+                    }
                 }
             }
+        }
+    }
+
+    private void processIncomingMessage(Socket server){
+        try {
+            DataInputStream in =
+                    new DataInputStream(server.getInputStream());
+            TMsg msg = this.getDecoder().decode(in.readUTF());
+            msg.setReceivedTime(System.currentTimeMillis());
+
+            synchronized (this.queueAccess) {
+                if (canProcessMessage(msg)) {
+                    getIncomingMessages().add(msg);
+                    msg = getIncomingMessages().poll();
+
+                    final TMsg msgParam = msg;
+
+                    // Starting message processing.
+                    processMessage(msgParam);
+                }
+            }
+            in.close();
+            server.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
