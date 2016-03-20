@@ -19,15 +19,40 @@ public class Main {
         };
         NetData netData = new NetData(positions);
 
-        ArrayList<DiscoNode<DiscoveryMessage>> network = ClassicNetworks.CompleteNetwork(
+//        ArrayList<DiscoNode<DiscoveryMessage>> network = ClassicNetworks.CompleteNetwork(
+//                (i) -> {
+//                    try {
+//                        return new DiscoNode<>(
+//                                i, new MessageData<>(DiscoveryMessage::create, DiscoveryMessage::decode),
+//                                netData,
+//                                new PositionData(positions[i][0], positions[i][1], 1.5),
+//                                0.2
+//                        );
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    } catch(Exception e){
+//                        e.printStackTrace();
+//                    }
+//                    return null;
+//                },
+//                5
+//        );
+
+        ArrayList<AccNode<AccMessage>> network = ClassicNetworks.CompleteNetwork(
                 (i) -> {
                     try {
-                        return new DiscoNode<>(
-                                i, new MessageData<>(DiscoveryMessage::create, DiscoveryMessage::decode),
-                                netData,
-                                new PositionData(positions[i][0], positions[i][1], 1.5),
-                                0.2
-                        );
+                        if (i==0){
+                            return new AccLeaderNode<>(
+                                    i, new MessageData<>(AccMessage::create, AccMessage::decode),
+                                    new PositionData(positions[i][0], positions[i][1], 1.5)
+                            );
+                        }else{
+                            return new AccNode<>(
+                                    i, new MessageData<>(AccMessage::create, AccMessage::decode),
+                                    new PositionData(positions[i][0], positions[i][1], 1.5)
+                            );
+                        }
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch(Exception e){
@@ -37,7 +62,7 @@ public class Main {
                 },
                 5
         );
-//        System.out.println(network.get(0).getNeighbors());
+
 
         for(int i = 0; i < network.size(); i++) {
 //            System.out.println(network.get(3).getObjectID());
