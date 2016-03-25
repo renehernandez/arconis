@@ -124,4 +124,9 @@ public class AccMessage extends Message {
                 && xPos == msg.getXPos() && yPos == msg.getYPos() && radius == msg.getRadius();
     }
 
+    @Override
+    public String toString(){
+        return "<Id: " + getObjectID() + ", Content: " + content + ", xPos: " + xPos + ", yPos: " + yPos + ", radius: " + radius;
+    }
+
 }
