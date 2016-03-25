@@ -253,15 +253,18 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         long initialtimeOfCurrentNeighborEntry;
         String dutycyclefCurrentNeighborEntry;
 
-		if (!knownNeighbors.contains(idOfSendingNode)){
-			 knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
-		}
-		else {
-			knownNeighbors.set(knownNeighbors.indexOf(idOfSendingNode), new NeighborItem(idOfSendingNode, 1,initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
-		}
-			
-        for (NeighborItem neighborEntry : NeighborsOfSendingNode)
-            if (!knownNeighbors.contains(neighborEntry)) {  //neighbor NOT in the localNeighborTable
+
+        Optional<NeighborItem> find = knownNeighbors.stream().filter(x -> x.getId() == idOfSendingNode).
+                findFirst();
+        if (!find.isPresent()){
+            knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
+        }
+
+        for (NeighborItem neighborEntry : NeighborsOfSendingNode) {
+            if (neighborEntry.getId() == this.getObjectID())
+                continue;
+
+            if (!knownNeighbors.stream().anyMatch(x -> x.getId() == neighborEntry.getId())) {  //neighbor NOT in the localNeighborTable
                 hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
                 if (hopsdOfCurrentNeighborEntry <= 3) { // only keep neighbors with max 3 hops
                     idOfCurrentNeighborEntry = neighborEntry.getId();
@@ -271,13 +274,14 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                 }
             } else {  //neighbor in the localNeighborTable
                 hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
-                if (hopsdOfCurrentNeighborEntry < knownNeighbors.get(knownNeighbors.indexOf(neighborEntry)).getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
-                    idOfCurrentNeighborEntry = neighborEntry.getId();
-                    dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
-                    initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
-                    knownNeighbors.set(knownNeighbors.indexOf(neighborEntry), new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
+                NeighborItem current = knownNeighbors.stream().filter(x -> x.getId() == neighborEntry.getId()).findFirst().get();
+
+                if (hopsdOfCurrentNeighborEntry < current.getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
+                    current.setDutycycle(neighborEntry.getDutycycle());
+                    current.setInitialtime(neighborEntry.getInitialtime());
                 }
             }
+        }
     }
 
 
