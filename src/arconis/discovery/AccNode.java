@@ -1,10 +1,10 @@
 package arconis.discovery;
 
-import arconis.Address;
-import arconis.MessageData;
+import arconis.*;
+import arconis.tests.TestData;
 
-import java.io.DataOutputStream;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.util.*;
 
 /**
@@ -28,9 +28,11 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     long initialTime;
 //    Status status;
     private List<NeighborItem> knownNeighbors;
+    protected Set<Integer> realNeighbors;
     private int extraWakeupTimeslot=-1;
     private int currentDutyCycle;
 
+    protected long lastReceivedTime;
 
     private double weightOfDirectGainFrom2HopsNeighbors=0.5;
     private double weightOfDirectGainFrom3HopsNeighbors=0.5;
@@ -47,9 +49,6 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 
     final Object lock = new Object();
 
-    //Set<Integer> knownNeighbors;
-
-
     public AccNode(int objectID, MessageData<TMsg> msgData, PositionData posData) throws Exception {
         super(objectID, msgData, posData);
 
@@ -58,7 +57,7 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         this.initialTime = System.currentTimeMillis();
 
         this.selectPrimes();
-        //this.knownNeighbors.add(new NeighborItem(objectID, 0, 0, "37:43"));
+        realNeighbors = new HashSet<>();
     }
 
     public int getFirstPrime(){
@@ -98,6 +97,18 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 	
 	public long getInitialTime() {
         return this.initialTime;
+    }
+
+    public long getLastReceivedTime() {
+        return this.lastReceivedTime;
+    }
+
+    public static int getIntervalLength() {
+        return intervalLength;
+    }
+
+    public Set<Integer> getRealNeighbors() {
+        return this.realNeighbors;
     }
 
     @Override
@@ -140,8 +151,10 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     @Override
     protected void processMessage(TMsg msg) {
         synchronized(this.lock) {
-            updateMyNeighborTable(msg.getObjectID(), msg.getInitialtime(), msg.getFirstPrime(), msg.getSecondPrime(), msg.getNeighborTable());
-            System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
+            updateMyNeighborTable(msg);
+//            System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
+
+            runProcessedMessageEvent();
         }
     }
 
@@ -162,11 +175,6 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
             if(!mask[i])
                 primes.add(i);
     }*/
-
-
-
-    @Override
-    protected boolean workCondition(){return true;}
 
     @Override
     protected boolean canProcessMessage(TMsg msg) {
@@ -247,7 +255,13 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 
     }
 
-    public void updateMyNeighborTable(int idOfSendingNode, long initialtimeOfSendingNode, int firstPrimeOfSendingNode, int secondPrimeOfSendingNode, List<NeighborItem> NeighborsOfSendingNode) {
+    public void updateMyNeighborTable(TMsg msg) {
+        int idOfSendingNode = msg.getObjectID();
+        long initialtimeOfSendingNode = msg.getInitialtime();
+        int firstPrimeOfSendingNode = msg.getFirstPrime();
+        int secondPrimeOfSendingNode = msg.getSecondPrime();
+        List<NeighborItem> NeighborsOfSendingNode = msg.getNeighborTable();
+
         int idOfCurrentNeighborEntry;
         int hopsdOfCurrentNeighborEntry;
         long initialtimeOfCurrentNeighborEntry;
@@ -258,6 +272,12 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                 findFirst();
         if (!find.isPresent()){
             knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
+            this.lastReceivedTime = msg.getReceivedTime();
+            realNeighbors.add(idOfSendingNode);
+        } else if(find.get().getHops() != 1) {
+            find.get().setHops(1);
+            this.lastReceivedTime = msg.getReceivedTime();
+            realNeighbors.add(idOfSendingNode);
         }
 
         for (NeighborItem neighborEntry : NeighborsOfSendingNode) {
@@ -283,6 +303,5 @@ public class AccNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
             }
         }
     }
-
 
 }

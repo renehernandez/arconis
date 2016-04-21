@@ -1,9 +1,9 @@
 package arconis.discovery;
 
 import arconis.*;
-import arconis.benchmark.*;
 import arconis.interfaces.Message;
-import arconis.log.*;
+import arconis.tests.TestData;
+import arconis.utils.UtilityData;
 
 import java.io.IOException;
 

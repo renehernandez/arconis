@@ -3,8 +3,8 @@ package arconis.election;
 import arconis.Address;
 import arconis.MessageData;
 import arconis.Node;
-import arconis.UtilityData;
-import arconis.delegates.*;
+import arconis.tests.TestData;
+import arconis.utils.UtilityData;
 import arconis.interfaces.*;
 
 

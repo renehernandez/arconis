@@ -1,6 +1,7 @@
 package arconis.discovery;
 
 import arconis.*;
+import arconis.tests.TestData;
 
 import java.io.*;
 import java.net.*;
@@ -36,14 +37,15 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     // Private Fields
 
-    static final int intervalLength = 5;
-
+    static final long intervalLength = 5;
     final static int MAX = 100000;
     int firstPrime;
     int secondPrime;
     double dutyCycle;
     long initialTime;
-    NetData netData;
+    long lastReceivedTime;
+    int numberOfWakeUp;
+//    NetData netData;
     final Object lock = new Object();
     Set<Integer> knownNeighbors;
 
@@ -53,18 +55,40 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         return this.dutyCycle;
     }
 
+    public static long getIntervalLength() {
+        return intervalLength;
+    }
+
+    public long getInitialTime(){
+        return this.initialTime;
+    }
+
+    public long getLastReceivedTime() {
+        return this.lastReceivedTime;
+    }
+
+    public int getNumberOfWakeUp(){
+        return this.numberOfWakeUp;
+    }
+
+    public Set<Integer> getKnownNeighbors(){
+        return this.knownNeighbors;
+    }
+
     // Constructors
 
-    public DiscoNode(int objectID, MessageData<TMsg> msgData, NetData netData, PositionData posData, double dutyCycle) throws Exception {
+    public DiscoNode(int objectID, MessageData<TMsg> msgData, PositionData posData, double dutyCycle) throws Exception {
         super(objectID, msgData, posData);
 
-        this.netData = netData;
         this.knownNeighbors = Collections.synchronizedSet(new HashSet<>());
 
         this.dutyCycle = dutyCycle;
         this.initialTime = System.currentTimeMillis();
 
-        this.selectPrimes();
+//        this.selectPrimes();
+
+        this.firstPrime = 37;
+        this.secondPrime = 43;
     }
 
     // Public Methods
@@ -105,13 +129,10 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
                 this.knownNeighbors.add(msg.getObjectID());
                 System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors
                         + ", Time Period: " + (msg.getReceivedTime() - initialTime)/intervalLength);
+                lastReceivedTime = msg.getReceivedTime();
+                runProcessedMessageEvent();
             }
         }
-    }
-
-    @Override
-    protected boolean workCondition(){
-        return true;
     }
 
     @Override

@@ -1,10 +1,12 @@
 package arconis;
 
-import arconis.benchmark.Benchmark;
-import arconis.delegates.MessageDecoder;
-import arconis.delegates.MessageGenerator;
-import arconis.interfaces.Message;
+import arconis.benchmark.*;
+import arconis.delegates.*;
+import arconis.events.EventListener;
+import arconis.interfaces.*;
 import arconis.log.*;
+import arconis.tests.*;
+import arconis.utils.*;
 
 import java.io.*;
 import java.net.*;
@@ -23,7 +25,13 @@ public abstract class Node<TMsg extends Message> extends Thread {
     HashMap<Integer, Address> neighbors;
     MessageData<TMsg> msgData;
     UtilityData utils;
+    TestData testData;
     final Object queueAccess = new Object();
+    boolean workCondition;
+
+    ArrayList<EventListener> stopListeners;
+    ArrayList<EventListener> startListeners;
+    ArrayList<EventListener> processedMessageListeners;
 
     // Getters & Setters
 
@@ -84,6 +92,10 @@ public abstract class Node<TMsg extends Message> extends Thread {
         return new Socket(host, port);
     }
 
+    public TestData getTestData(){
+        return this.testData;
+    }
+
     // Constructors
 
     public Node(int objectID, MessageData<TMsg> msgData, UtilityData utils) throws IOException{
@@ -95,6 +107,10 @@ public abstract class Node<TMsg extends Message> extends Thread {
         this.neighbors = new HashMap<>();
         this.msgData = msgData;
         this.utils = utils;
+        this.stopListeners = new ArrayList<>();
+        this.startListeners = new ArrayList<>();
+        this.processedMessageListeners = new ArrayList<>();
+        this.workCondition = true;
     }
 
     public Node(int objectID, MessageData<TMsg> msgData) throws IOException {
@@ -114,6 +130,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
     }
 
     public void run(){
+        runStartEvent();
         new Thread(this::processEnqueuedMessages).start();
 
         while(workCondition()){
@@ -138,11 +155,19 @@ public abstract class Node<TMsg extends Message> extends Thread {
 
     public abstract void sendMessage(TMsg inputMsg);
 
+    public void stopNode(){
+        this.workCondition = false;
+
+        runStopEvent();
+    }
+
     // Protected Methods
 
     protected abstract void processMessage(TMsg msg);
 
-    protected abstract boolean workCondition();
+    protected boolean workCondition(){
+        return this.workCondition;
+    }
 
     protected boolean canProcessMessage(TMsg msg){
         return true;
@@ -190,5 +215,23 @@ public abstract class Node<TMsg extends Message> extends Thread {
             e.printStackTrace();
         }
     }
+
+    // Events Section
+
+    public void addStartListener(EventListener listener) { this.startListeners.add(listener); }
+
+    protected void runStartEvent() { this.startListeners.forEach(x -> x.respondTo(this));}
+
+    public void addStopListener(EventListener listener){
+        this.stopListeners.add(listener);
+    }
+
+    protected void runStopEvent(){
+        this.stopListeners.forEach(x -> x.respondTo(this));
+    }
+
+    protected void runProcessedMessageEvent() { this.processedMessageListeners.forEach(x -> x.respondTo(this)); }
+
+    public void addProcessedMessageListener(EventListener listener) {this.processedMessageListeners.add(listener); }
 
 }

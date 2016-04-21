@@ -4,6 +4,7 @@ import arconis.*;
 import arconis.benchmark.*;
 import arconis.delegates.*;
 import arconis.interfaces.*;
+import arconis.tests.TestData;
 
 import java.io.*;
 import java.net.Socket;

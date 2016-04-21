@@ -9,6 +9,7 @@ import arconis.*;
 import arconis.delegates.MessageDecoder;
 import arconis.delegates.MessageGenerator;
 import arconis.interfaces.*;
+import arconis.tests.TestData;
 
 public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
@@ -31,7 +32,7 @@ public class BroadcastNode<TMsg extends Message> extends Node<TMsg> {
 
     // Constructors
 
-    public BroadcastNode(int objectID, MessageData msgData) throws IOException {
+    public BroadcastNode(int objectID, MessageData<TMsg> msgData) throws IOException {
         super(objectID, msgData);
 
         this.receivedMessages = new HashSet<>();

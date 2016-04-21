@@ -2,6 +2,7 @@ package arconis.discovery;
 
 import arconis.Address;
 import arconis.MessageData;
+import arconis.tests.TestData;
 
 import java.io.DataOutputStream;
 import java.net.Socket;
@@ -72,6 +73,10 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     public void setInitialTime() {
         this.initialTime = System.currentTimeMillis();
     }
+
+    public static int getIntervalLength() {
+        return intervalLength;
+    }
 	
 	private void selectPrimes() throws Exception {
         /*double eps = 1e-2;
@@ -99,6 +104,7 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 	public long getInitialTime() {
         return this.initialTime;
     }
+
 
     @Override
     public void sendMessage() {
@@ -144,10 +150,12 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     @Override
     protected void processMessage(TMsg msg) {
         synchronized(this.lock) {
-            System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
-            updateMyNeighborTable(msg.getObjectID(), msg.getInitialtime(), msg.getFirstPrime(), msg.getSecondPrime(), msg.getNeighborTable());
-            System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
-    }
+//            System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
+            updateMyNeighborTable(msg);
+//            System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
+
+            runProcessedMessageEvent();
+        }
     }
 
     // private methods
@@ -167,11 +175,6 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
             if(!mask[i])
                 primes.add(i);
     }*/
-
-
-
-    @Override
-    protected boolean workCondition(){return true;}
 
     private double distFrom(double x, double y){
         double xDiff = this.getXPos() - x;
@@ -247,7 +250,13 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
     }
 
-    public void updateMyNeighborTable(int idOfSendingNode, long initialtimeOfSendingNode, int firstPrimeOfSendingNode, int secondPrimeOfSendingNode, List<NeighborItem> NeighborsOfSendingNode) {
+    public void updateMyNeighborTable(TMsg msg) {
+        int idOfSendingNode = msg.getObjectID();
+        long initialtimeOfSendingNode = msg.getInitialtime();
+        int firstPrimeOfSendingNode = msg.getFirstPrime();
+        int secondPrimeOfSendingNode = msg.getSecondPrime();
+        List<NeighborItem> NeighborsOfSendingNode = msg.getNeighborTable();
+
         int idOfCurrentNeighborEntry;
         int hopsdOfCurrentNeighborEntry;
         long initialtimeOfCurrentNeighborEntry;
@@ -267,7 +276,13 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
                                     findFirst();
 		if (!find.isPresent()){
 			 knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
-		}
+            this.lastReceivedTime = msg.getReceivedTime();
+            realNeighbors.add(idOfSendingNode);
+		} else if(find.get().getHops() != 1) {
+            find.get().setHops(1);
+            realNeighbors.add(idOfSendingNode);
+            this.lastReceivedTime = msg.getReceivedTime();
+        }
 			
         for (NeighborItem neighborEntry : NeighborsOfSendingNode){
             if(neighborEntry.getId() == this.getObjectID())

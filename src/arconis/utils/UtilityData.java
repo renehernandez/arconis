@@ -1,4 +1,4 @@
-package arconis;
+package arconis.utils;
 
 import arconis.benchmark.Benchmark;
 import arconis.log.ConsoleLog;
