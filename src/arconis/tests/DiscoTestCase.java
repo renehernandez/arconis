@@ -64,7 +64,13 @@ public class DiscoTestCase extends TestCase {
             }
 
             for (int i = 0; i < network.size(); i++) {
+
+                network.get(i).setInitialTime(System.currentTimeMillis());
                 network.get(i).sendMessage();
+                try {
+                    Thread.sleep(100);
+                } catch (Exception e) {}
+
             }
 //        }
     }

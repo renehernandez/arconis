@@ -37,7 +37,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     // Private Fields
 
-    static final long intervalLength = 5;
+    static final long intervalLength = 100;
     final static int MAX = 100000;
     int firstPrime;
     int secondPrime;
@@ -63,6 +63,10 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         return this.initialTime;
     }
 
+    public void setInitialTime(long initialTime){
+        this.initialTime = initialTime;
+    }
+
     public long getLastReceivedTime() {
         return this.lastReceivedTime;
     }
@@ -83,12 +87,12 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         this.knownNeighbors = Collections.synchronizedSet(new HashSet<>());
 
         this.dutyCycle = dutyCycle;
-        this.initialTime = System.currentTimeMillis();
-
+        //this.initialTime = System.currentTimeMillis();
+        this.initialTime =0;
 //        this.selectPrimes();
 
-        this.firstPrime = 37;
-        this.secondPrime = 43;
+        this.firstPrime = 3;
+        this.secondPrime = 5;
     }
 
     // Public Methods
@@ -98,12 +102,12 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
         new Thread(() -> {
             while (workCondition()) {
                 sendMessage(this.getGenerator().generate("HELLO", this));
-                try {
+                /*try {
                     sleep(intervalLength - 1);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                sendMessage(this.getGenerator().generate("HELLO", this));
+                sendMessage(this.getGenerator().generate("HELLO", this));*/
             }
         }).start();
     }
@@ -174,11 +178,30 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends PositionNode<TMsg>
 
     private boolean isAwakenTime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
-        long firstRem = (diff/ intervalLength ) % firstPrime;
-        long secondRem = (diff/ intervalLength ) % secondPrime;
+       if (!(initialTime==0)) {
 
-        return firstRem == 0 || secondRem == 0;
+
+           long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
+
+           long firstRem = (diff / intervalLength) % firstPrime;
+           long secondRem = (diff / intervalLength) % secondPrime;
+           if (msg != null) {
+               //System.out.println("ID: " + this.getObjectID() + "receive from: " + receivedTime
+                       //+ ": " + msg.getObjectID() + ":" + initialTime + ":diff:" + diff + ":firstRem:" + firstRem + ":secondRem:" + secondRem);
+
+               if (diff > intervalLength) {
+                   return firstRem == 0 || secondRem == 0;
+               } else {
+                   return false;
+               }
+           } else{
+               //System.out.println("Null ID: " + this.getObjectID() + "receive from: " + receivedTime+ ": "
+                      //+ initialTime + ":firstRem:" + firstRem + ":secondRem:" + secondRem);
+                return firstRem == 0 || secondRem == 0;
+            }
+        }
+        else {
+           return false;}
     }
 
     private boolean shouldReceiveMessage(TMsg msg){
