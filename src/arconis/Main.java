@@ -22,13 +22,13 @@ public class Main {
 
         ArrayList<TestData> data = GenerateTest(5, 0, 0, 1.5);
 
-//        DiscoTestCase test = new DiscoTestCase(1, "tests_disco.txt", data);
+        DiscoTestCase test = new DiscoTestCase(1, "tests_disco.txt", data);
+
+        test.run();
+
+//        AccTestCase test1 = new AccTestCase(1, "tests_acc.txt", data);
 //
-//        test.run();
-
-        AccTestCase test1 = new AccTestCase(1, "tests_acc.txt", data);
-
-        test1.run();
+//        test1.run();
 
     }
 

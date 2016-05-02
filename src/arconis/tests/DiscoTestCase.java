@@ -45,8 +45,6 @@ public class DiscoTestCase extends TestCase {
                                             data.get(index).getRadius()),
                                     0.2
                             );
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -97,7 +95,7 @@ public class DiscoTestCase extends TestCase {
 
             Path file = Paths.get(disco.getObjectID() + "_" + this.getOutputFileName());
 
-            long period = (disco.getLastReceivedTime() - disco.getInitialTime()) / DiscoNode.getIntervalLength();
+            long period = (disco.getLastReceivedTime() - disco.getInitialTime()) / disco.getIntervalLength();
 
             try (BufferedWriter writer = Files.newBufferedWriter(file)) {
                 writer.write("Known:" + disco.getKnownNeighbors() + ", Period: " + period);
