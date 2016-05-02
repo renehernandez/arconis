@@ -5,10 +5,13 @@ package arconis.log;
  */
 public class ConsoleLog extends Log {
 
+    // Public Methods
+
     @Override
     public void print(String msg){
         long threadID = Thread.currentThread().getId();
-        System.out.println("Thread Id:" + threadID + ", Logged Message:\n" + msg);
+        System.out.println("Thread Id:" + threadID + ", Logged Message:" + msg);
+//        System.out.println(msg);
     }
 
 }

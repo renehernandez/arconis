@@ -74,8 +74,6 @@ public class NeighborItem {
         this.dutycycle = dutycycle;
     }
 
-
-
     public NeighborItem(int id, int hops, long initialtime, String dutycycle) {
         this.id = id;
         this.hops = hops;
@@ -84,7 +82,7 @@ public class NeighborItem {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return this.id + ":" + this.hops + ":" + this.initialtime + ":" + this.dutycycle;
     }
 }

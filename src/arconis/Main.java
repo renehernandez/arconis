@@ -2,60 +2,60 @@ package arconis;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.IntStream;
 
-import arconis.benchmark.*;
 import arconis.discovery.*;
 import arconis.generators.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import arconis.tests.*;
+import arconis.utils.*;
 
 public class Main {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
+//        double[][] positions = new double[][] {
+//                {1, 2},
+//                {1, 1},
+//                {2, 2},
+//                {3, 2},
+//                {0, 0}
+//        };
 
-        double[][] position = new double[][] {
+        ArrayList<TestData> data = GenerateTest(5, 0, 0, 1.5);
+
+//        DiscoTestCase test = new DiscoTestCase(1, "tests_disco.txt", data);
+//
+//        test.run();
+
+        AccTestCase test1 = new AccTestCase(1, "tests_acc.txt", data);
+
+        test1.run();
+
+    }
+
+    public static ArrayList<TestData> GenerateTest(int pointsNumber, double xCenter, double yCenter, double radius){
+//        double[][] positions = new double[pointsNumber][2];
+//        Random r = new Random();
+//
+//        int xSign, ySign;
+//
+//        for(int i = 0; i < pointsNumber; i++){
+//            xSign = r.nextDouble() > 0.5 ? -1 : 1;
+//            ySign = r.nextDouble() > 0.5 ? -1 : 1;
+//            positions[i][0] = xSign * Math.abs(radius - xCenter) * r.nextDouble();
+//            positions[i][1] = ySign * Math.abs(radius - yCenter) * r.nextDouble();
+//        }
+
+        double[][] positions = new double[][] {
                 {1, 2},
                 {1, 1},
                 {2, 2},
                 {3, 2},
                 {0, 0}
         };
-        ArrayList<AccNode<AccMessage>> network = ClassicNetworks.CompleteNetwork(
-                (i) -> {
-                    try {
-                        if (i==0){
-                            return new AccLeaderNode<>(
-                                    i, AccMessage::create, AccMessage::decode,
-                                    position[i][0], position[i][1], 1.5
-                            );
-                        }else{
-                            return new AccNode<>(
-                                    i, AccMessage::create, AccMessage::decode,
-                                    position[i][0], position[i][1], 1.5
-                            );
-                        }
 
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch(Exception e){
-                        e.printStackTrace();
-                    }
-                    return null;
-                },
-                5
-        );
-//        System.out.println(network.get(0).getNeighbors());
-
-        for(int i = 0; i < network.size(); i++) {
-//            System.out.println(network.get(3).getObjectID());
-            network.get(i).setInitialTime();
-            network.get(i).sendMessage();
-            int random = (int )(Math.random() * 30 + 1); //generate int between 1..30
-            Thread.sleep(5 * random);
-        }
-
+        ArrayList<TestData> list = new ArrayList<>();
+        list.add(new TestData(positions, radius));
+        return list;
     }
 
 }

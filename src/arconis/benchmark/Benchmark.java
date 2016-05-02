@@ -5,25 +5,17 @@ package arconis.benchmark;
  */
 public class Benchmark {
 
+    // Private Fields
+
     static long longestTime;
     static int totalNumberOfMessages;
     static final Object globalLock = new Object();
-
     long initialTime;
     long finalTime;
     int numberOfMessages;
     final Object lock = new Object();
 
-    public Benchmark(){
-        this.numberOfMessages = 0;
-    }
-
-    public Benchmark incrementMessageCount(){
-        synchronized (lock) {
-            this.numberOfMessages++;
-        }
-        return this;
-    }
+    // Getters & Setters
 
     public int getNumberOfMessages(){
         return this.numberOfMessages;
@@ -41,6 +33,29 @@ public class Benchmark {
         return this.finalTime;
     }
 
+    public static long getLongestTime(){
+        return longestTime;
+    }
+
+    public static int getTotalNumberOfMessages(){
+        return totalNumberOfMessages;
+    }
+
+    // Constructors
+
+    public Benchmark(){
+        this.numberOfMessages = 0;
+    }
+
+    // Public Methods
+
+    public Benchmark incrementMessageCount(){
+        synchronized (lock) {
+            this.numberOfMessages++;
+        }
+        return this;
+    }
+
     public Benchmark start(){
         synchronized (lock) {
             this.initialTime = System.nanoTime();
@@ -55,10 +70,6 @@ public class Benchmark {
         return this;
     }
 
-    public static int getTotalNumberOfMessages(){
-        return totalNumberOfMessages;
-    }
-
     public Benchmark updateLongestTime(long elapsedTime){
         synchronized (globalLock) {
             if(longestTime < elapsedTime){
@@ -66,10 +77,6 @@ public class Benchmark {
             }
         }
         return this;
-    }
-
-    public static long getLongestTime(){
-        return longestTime;
     }
 
     public static void resetMeasures(){

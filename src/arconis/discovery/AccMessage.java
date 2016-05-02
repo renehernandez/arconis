@@ -41,7 +41,7 @@ public class AccMessage extends Message {
                 items.add(new NeighborItem(
                         Integer.parseInt(data[i]),
                         Integer.parseInt(data[i + 1]),
-                        Integer.parseInt(data[i + 2]),
+                        Long.parseLong(data[i + 2]),
                         data[i + 3]
                 ));
             }
@@ -122,6 +122,11 @@ public class AccMessage extends Message {
 //fixme
         return content.equals(msg.getContent()) && objectID == msg.getObjectID()
                 && xPos == msg.getXPos() && yPos == msg.getYPos() && radius == msg.getRadius();
+    }
+
+    @Override
+    public String toString(){
+        return "<Id: " + getObjectID() + ", Content: " + content + ", xPos: " + xPos + ", yPos: " + yPos + ", radius: " + radius;
     }
 
 }

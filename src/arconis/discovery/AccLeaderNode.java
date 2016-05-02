@@ -1,20 +1,17 @@
 package arconis.discovery;
 
 import arconis.Address;
-import arconis.delegates.MessageDecoder;
-import arconis.delegates.MessageGenerator;
+import arconis.MessageData;
+import arconis.tests.TestData;
 
 import java.io.DataOutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by aegis on 02/12/15.
  */
-public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
+public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
 //    public enum Status {
 //        SLEEP,
@@ -54,8 +51,8 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     //Set<Integer> knownNeighbors;
 
 
-    public AccLeaderNode(int objectID, MessageGenerator<TMsg> generator, MessageDecoder<TMsg> decoder, double xPos, double yPos, double radius) throws Exception {
-        super(objectID, generator, decoder, xPos, yPos, radius);
+    public AccLeaderNode(int objectID, MessageData<TMsg> msgData, PositionData posData) throws Exception {
+        super(objectID, msgData, posData);
 
         this.knownNeighbors = Collections.synchronizedList(new ArrayList<>());
         //this.eratosthenesSieve();
@@ -75,6 +72,10 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 
     public void setInitialTime() {
         this.initialTime = System.currentTimeMillis();
+    }
+
+    public static int getIntervalLength() {
+        return intervalLength;
     }
 	
 	private void selectPrimes() throws Exception {
@@ -104,25 +105,26 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
         return this.initialTime;
     }
 
+
     @Override
     public void sendMessage() {
         new Thread(() -> {
-            while (true) {
+            while (workCondition()) {
                 sendMessage(this.getGenerator().generate("HELLO", this));
                 try {
-                    sleep(4);
+                    sleep(intervalLength - 1);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 TMsg msg1 = this.getGenerator().generate("HELLO", this);
                 sendMessage(msg1);
-                if(System.currentTimeMillis() - msg1.getSendTime() < 5){
-                    try {
-                        sleep(System.currentTimeMillis() - msg1.getReceivedTime());
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
+//                if(System.currentTimeMillis() - msg1.getSendTime() < 5){
+//                    try {
+//                        sleep(System.currentTimeMillis() - msg1.getReceivedTime());
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
 
             }
         }).start();
@@ -131,37 +133,28 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
     @Override
     public void sendMessage(TMsg outputMsg) {
         synchronized(this.lock) {
-            this.setIsBusy(true);
-			
+
             if(this.isAwakenTime() || this.isAwakenTimeAtExtraPrime()){
-                System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
+                //System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
                 if (!this.isAwakenTimeAtExtraPrime()){
                     setExtraPrime(System.currentTimeMillis());
                 } //fixme
 				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
-//                    if(knownNeighbors.contains(entry.getKey()))
-//                        continue;
-
                     writeToSocket(entry, outputMsg);
                 }
 				
             }
-            this.setIsBusy(false);
         }
     }
 	
     @Override
     protected void processMessage(TMsg msg) {
         synchronized(this.lock) {
-            this.setIsBusy(true);
-            if (this.isAwakenTime(msg) || this.isAwakenTimeAtExtraPrime(msg)) {
-                System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
-                if (this.shouldReceiveMessage(msg)) {
-                    updateMyNeighborTable(msg.getObjectID(), msg.getInitialtime(), msg.getFirstPrime(), msg.getSecondPrime(), msg.getNeighborTable());
-                    System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
-                }
-            }
-            this.setIsBusy(false);
+//            System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
+            updateMyNeighborTable(msg);
+//            System.out.println("ID: " + this.getObjectID() + ", known: " + this.knownNeighbors);
+
+            runProcessedMessageEvent();
         }
     }
 
@@ -182,11 +175,6 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
             if(!mask[i])
                 primes.add(i);
     }*/
-
-
-
-    @Override
-    public boolean workCondition(){return true;}
 
     private double distFrom(double x, double y){
         double xDiff = this.getXPos() - x;
@@ -262,7 +250,13 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
 
     }
 
-    public void updateMyNeighborTable(int idOfSendingNode, long initialtimeOfSendingNode, int firstPrimeOfSendingNode, int secondPrimeOfSendingNode, List<NeighborItem> NeighborsOfSendingNode) {
+    public void updateMyNeighborTable(TMsg msg) {
+        int idOfSendingNode = msg.getObjectID();
+        long initialtimeOfSendingNode = msg.getInitialtime();
+        int firstPrimeOfSendingNode = msg.getFirstPrime();
+        int secondPrimeOfSendingNode = msg.getSecondPrime();
+        List<NeighborItem> NeighborsOfSendingNode = msg.getNeighborTable();
+
         int idOfCurrentNeighborEntry;
         int hopsdOfCurrentNeighborEntry;
         long initialtimeOfCurrentNeighborEntry;
@@ -278,51 +272,72 @@ public class AccLeaderNode<TMsg extends AccMessage> extends PositionNode<TMsg> {
                   break;
              default: break;
         }
-		if (!knownNeighbors.contains(idOfSendingNode)){
+        Optional<NeighborItem> find = knownNeighbors.stream().filter(x -> x.getId() == idOfSendingNode).
+                                    findFirst();
+		if (!find.isPresent()){
 			 knownNeighbors.add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
-		}
-		else {
-			knownNeighbors.set(knownNeighbors.indexOf(idOfSendingNode), new NeighborItem(idOfSendingNode, 1,initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
-		}
+            this.lastReceivedTime = msg.getReceivedTime();
+            realNeighbors.add(idOfSendingNode);
+		} else if(find.get().getHops() != 1) {
+            find.get().setHops(1);
+            realNeighbors.add(idOfSendingNode);
+            this.lastReceivedTime = msg.getReceivedTime();
+        }
 			
-        for (NeighborItem neighborEntry : NeighborsOfSendingNode)
-            if (!knownNeighbors.contains(neighborEntry)) {  //neighbor NOT in the localNeighborTable
+        for (NeighborItem neighborEntry : NeighborsOfSendingNode){
+            if(neighborEntry.getId() == this.getObjectID())
+                continue;
+
+            if (!knownNeighbors.stream().anyMatch(x -> x.getId() == neighborEntry.getId())) {  //neighbor NOT in the localNeighborTable
                 hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
                 if (hopsdOfCurrentNeighborEntry <= 3) { // only keep neighbors with max 3 hops
                     idOfCurrentNeighborEntry = neighborEntry.getId();
                     dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
                     initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
                     knownNeighbors.add(new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
-                        switch (hopsdOfSendingNode) {
-                                case 1:  numberOfNewInformationFrom1HopsNeighbors++;
-                                    break;
-                                case 2:  numberOfNewInformationFrom2HopsNeighbors++;
-                                    break;
-                                case 3:  numberOfNewInformationFrom3HopsNeighbors++;
-                                    break;
+                    switch (hopsdOfSendingNode) {
+                        case 1:
+                            numberOfNewInformationFrom1HopsNeighbors++;
+                            break;
+                        case 2:
+                            numberOfNewInformationFrom2HopsNeighbors++;
+                            break;
+                        case 3:
+                            numberOfNewInformationFrom3HopsNeighbors++;
+                            break;
 
-                                default: break;
-                            }
+                        default:
+                            break;
+                    }
                 }
             } else {  //neighbor in the localNeighborTable
                 hopsdOfCurrentNeighborEntry = neighborEntry.getHops() + 1;
-                if (hopsdOfCurrentNeighborEntry < knownNeighbors.get(knownNeighbors.indexOf(neighborEntry)).getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
-                    idOfCurrentNeighborEntry = neighborEntry.getId();
-                    dutycyclefCurrentNeighborEntry = neighborEntry.getDutycycle();
-                    initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
-                    knownNeighbors.set(knownNeighbors.indexOf(neighborEntry), new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
-                            switch (hopsdOfSendingNode) {
-                                case 1:  numberOfNewInformationFrom1HopsNeighbors++;
-                                    break;
-                                case 2:  numberOfNewInformationFrom2HopsNeighbors++;
-                                    break;
-                                case 3:  numberOfNewInformationFrom3HopsNeighbors++;
-                                    break;
+                NeighborItem current = knownNeighbors.stream().filter(x -> x.getId() == neighborEntry.getId()).findFirst().get();
 
-                                default: break;
-                            }
+                if (hopsdOfCurrentNeighborEntry < current.getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
+//                    idOfCurrentNeighborEntry = neighborEntry.getId();
+                    current.setDutycycle(neighborEntry.getDutycycle());
+                    current.setInitialtime(neighborEntry.getInitialtime());
+
+//                    knownNeighbors.set(knownNeighbors.indexOf(neighborEntry), new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
+
+                    switch (hopsdOfSendingNode) {
+                        case 1:
+                            numberOfNewInformationFrom1HopsNeighbors++;
+                            break;
+                        case 2:
+                            numberOfNewInformationFrom2HopsNeighbors++;
+                            break;
+                        case 3:
+                            numberOfNewInformationFrom3HopsNeighbors++;
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
             }
+        }
     }
 
 

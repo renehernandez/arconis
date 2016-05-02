@@ -4,19 +4,27 @@ import arconis.interfaces.Message;
 
 public class DefaultMessage extends Message {
 
+    // Private Fields
+
     int objectID;
     String content;
     static final int size = 32;
+
+    // Getters & Setters
+
+    @Override
+    public String getContent(){
+        return this.content;
+    }
+
+    // Constructors
 
     public DefaultMessage(String content, int objectID){
         super(objectID, System.currentTimeMillis());
         this.content = content;
     }
 
-    @Override
-    public String getContent(){
-        return this.content;
-    }
+    // Public Methods
 
     @Override
     public String encode() {
