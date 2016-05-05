@@ -76,7 +76,7 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends DiscoveryNode<TMsg
             if (!this.getKnownNeighbors().contains(msg.getObjectID())) {
                 this.getKnownNeighbors().add(msg.getObjectID());
                 System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors()
-                        + ", Time Period: " + (msg.getReceivedTime() - getInitialTime())/getIntervalLength());
+                        + ", Time Period: " + getIntervalCounter(msg.getReceivedTime()));
                 this.setLastReceivedTime(msg.getReceivedTime());
                 runProcessedMessageEvent();
             }
@@ -90,9 +90,13 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends DiscoveryNode<TMsg
     @Override
     protected boolean isAwakenTime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
-        long firstRem = (diff/ intervalLength ) % firstPrime;
-        long secondRem = (diff/ intervalLength ) % secondPrime;
+        long counter = getIntervalCounter(receivedTime);
+
+        if (counter <= 0)
+            return false;
+
+        long firstRem = counter % firstPrime;
+        long secondRem = counter % secondPrime;
 
         return firstRem == 0 || secondRem == 0;
     }

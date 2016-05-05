@@ -20,12 +20,11 @@ import java.util.Set;
 public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<TMsg> {
 
     // Private Fields
-    long intervalLength = 1000;
-    long epsilon = 1;
+    long intervalLength = 100;
+    long epsilon = 10;
     double dutyCycle;
     long initialTime;
     long lastReceivedTime;
-    int numberOfWakeUp;
     int firstPrime;
     int secondPrime;
     final Object lock = new Object();
@@ -85,6 +84,10 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         return this.knowNeighbors;
     }
 
+    public long getIntervalCounter(long time){
+        return (time - initialTime) / intervalLength;
+    }
+
     // Constructors
     public DiscoveryNode(int objectID, MessageData<TMsg> msgData, PositionData posData, double dutyCycle) throws IOException {
         super(objectID, msgData, posData);
@@ -92,8 +95,8 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         this.knowNeighbors = Collections.synchronizedSet(new HashSet<>());
         this.dutyCycle = dutyCycle;
 
-        this.firstPrime = 37;
-        this.secondPrime = 43;
+        this.firstPrime = 3;
+        this.secondPrime = 5;
     }
 
     // Protected Methods

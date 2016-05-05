@@ -48,9 +48,9 @@ public class Main {
         double[][] positions = new double[][] {
                 {1, 2},
                 {1, 1},
-                {2, 2},
-                {3, 2},
-                {0, 0}
+                {2, 2}
+//                {3, 2},
+//                {0, 0}
         };
 
         ArrayList<TestData> list = new ArrayList<>();
