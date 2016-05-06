@@ -11,12 +11,49 @@ import java.util.List;
  */
 public class AccMessage extends Message {
 
+    // Private Fields
+
     String content;
     double xPos, yPos, radius;
-    List<NeighborItem> neighbors;
     long initialTime;
+    List<NeighborItem> neighbors;
 	int firstPrime;
 	int secondPrime;
+
+    // Getters && Setters
+
+    @Override
+    public String getContent() {
+        return this.content;
+    }
+
+    public double getXPos(){
+        return this.xPos;
+    }
+
+    public double getYPos(){
+        return this.yPos;
+    }
+
+    public double getRadius(){
+        return this.radius;
+    }
+
+    public long  getInitialtime(){
+        return this.initialTime;
+    }
+
+    public int  getFirstPrime(){ return this.firstPrime; }
+
+    public int  getSecondPrime(){
+        return this.secondPrime;
+    }
+
+    public List<NeighborItem> getNeighborTable(){
+        return this.neighbors;
+    }
+
+    // Constructors
 
     public AccMessage(int objectID, double xPos, double yPos, double radius,
                       long initialTime, int firstPrime, int secondPrime, List<NeighborItem> items,
@@ -25,12 +62,14 @@ public class AccMessage extends Message {
         this.xPos = xPos;
         this.yPos = yPos;
         this.radius = radius;
-        this.initialTime = initialTime;
+        this.content = content;
 		this.firstPrime=firstPrime;
+        this.initialTime = initialTime;
 		this.secondPrime=secondPrime;
         this.neighbors = items;
-        this.content = content;
     }
+
+    // Public Methods
 
     public static AccMessage decode(String msgEncoded){
         String[] data = msgEncoded.split(":");
@@ -56,7 +95,7 @@ public class AccMessage extends Message {
         AccNode<AccMessage> realNode = (AccNode<AccMessage>)node;
         return new AccMessage(realNode.getObjectID(), realNode.getXPos(), realNode.getYPos(),
                 realNode.getRadius(),realNode.getInitialTime(), realNode.getFirstPrime(),
-                realNode.getSecondPrime(), realNode.getKnownNeighbors(), content);
+                realNode.getSecondPrime(), realNode.getNeighborItems(), content);
     }
 
 
@@ -73,38 +112,7 @@ public class AccMessage extends Message {
         }
 
         return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + initialTime + ":"
-                + firstPrime + ":"+ secondPrime + ":"+ neighborsString + ":" + content;
-    }
-
-    @Override
-    public String getContent() {
-        return this.content;
-    }
-
-    public double getXPos(){
-        return this.xPos;
-    }
-
-    public double getYPos(){
-        return this.yPos;
-    }
-
-    public double getRadius(){
-        return this.radius;
-    }
-
-    public List<NeighborItem> getNeighborTable(){
-        return this.neighbors;
-    }
-
-    public long  getInitialtime(){
-        return this.initialTime;
-    }
-	
-	public int  getFirstPrime(){ return this.firstPrime; }
-	
-	public int  getSecondPrime(){
-        return this.secondPrime;
+                + firstPrime + ":" + secondPrime + ":"+ neighborsString + ":" + content;
     }
 
     @Override

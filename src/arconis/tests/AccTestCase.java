@@ -38,26 +38,25 @@ public class AccTestCase extends TestCase {
         network = ClassicNetworks.CompleteNetwork(
                 (i) -> {
                     try {
-                        if (i==0){
+                        if (i == 0) {
                             return new AccLeaderNode<>(
                                     i,
                                     new MessageData<>(AccMessage::create, AccMessage::decode),
                                     new PositionData(data.get(index).getPositions()[i][0],
                                             data.get(index).getPositions()[i][1],
-                                            data.get(index).getRadius())
+                                            data.get(index).getRadius()),
+                                    0.2
                             );
-                        }else{
+                        } else {
                             return new AccNode<>(
                                     i,
                                     new MessageData<>(AccMessage::create, AccMessage::decode),
                                     new PositionData(data.get(index).getPositions()[i][0],
                                             data.get(index).getPositions()[i][1],
-                                            data.get(index).getRadius())
+                                            data.get(index).getRadius()),
+                                    0.2
                             );
                         }
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     } catch(Exception e){
                         e.printStackTrace();
                     }
@@ -77,7 +76,13 @@ public class AccTestCase extends TestCase {
         }
 
         for (int i = 0; i < network.size(); i++) {
+            network.get(i).setInitialTime(System.currentTimeMillis());
             network.get(i).sendMessage();
+            try {
+                Thread.sleep(1000);
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -92,7 +97,7 @@ public class AccTestCase extends TestCase {
                     break;
                 }
 
-            if (!mark[pos] && acc.getRealNeighbors().size() == data.get(index).getRealNeighborsIndices().get(pos).size()) {
+            if (!mark[pos] && acc.getKnownNeighbors().size() == data.get(index).getRealNeighborsIndices().get(pos).size()) {
                 this.finishedNodes++;
                 mark[pos] = true;
             }
@@ -110,10 +115,10 @@ public class AccTestCase extends TestCase {
 
             Path file = Paths.get(acc.getObjectID() + "_" + this.getOutputFileName());
 
-            long period = (acc.getLastReceivedTime() - acc.getInitialTime()) / AccNode.getIntervalLength();
+            long period = acc.getIntervalCounter(acc.getLastReceivedTime());
 
             try (BufferedWriter writer = Files.newBufferedWriter(file)) {
-                writer.write("Known:" + acc.getKnownNeighbors() + ", Real:" + acc.getRealNeighbors() + ", Period: " + period);
+                writer.write("Known:" + acc.getKnownNeighbors() + ", Real:" + acc.getKnownNeighbors() + ", Period: " + period + ", WakeUp Times: " + acc.getWakeUpTimes());
             } catch (IOException e) {
                 System.out.println("Error writing to file: " + file);
             }

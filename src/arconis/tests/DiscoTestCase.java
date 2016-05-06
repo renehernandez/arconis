@@ -45,8 +45,6 @@ public class DiscoTestCase extends TestCase {
                                             data.get(index).getRadius()),
                                     0.2
                             );
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -64,7 +62,13 @@ public class DiscoTestCase extends TestCase {
             }
 
             for (int i = 0; i < network.size(); i++) {
+                network.get(i).setInitialTime(System.currentTimeMillis());
                 network.get(i).sendMessage();
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 //        }
     }
@@ -97,10 +101,10 @@ public class DiscoTestCase extends TestCase {
 
             Path file = Paths.get(disco.getObjectID() + "_" + this.getOutputFileName());
 
-            long period = (disco.getLastReceivedTime() - disco.getInitialTime()) / DiscoNode.getIntervalLength();
+            long period = disco.getIntervalCounter(disco.getLastReceivedTime());
 
             try (BufferedWriter writer = Files.newBufferedWriter(file)) {
-                writer.write("Known:" + disco.getKnownNeighbors() + ", Period: " + period);
+                writer.write("Known:" + disco.getKnownNeighbors() + ", Period: " + period + ", WakeUp Times: " + disco.getWakeUpTimes());
             } catch (IOException e) {
                 System.out.println("Error writing to file: " + file);
             }

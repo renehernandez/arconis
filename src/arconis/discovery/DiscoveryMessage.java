@@ -8,35 +8,12 @@ import arconis.*;
  */
 public class DiscoveryMessage extends Message {
 
+    // Private Fields
+
     String content;
     double xPos, yPos, radius;
 
-    public DiscoveryMessage(int objectID, double xPos, double yPos, double radius, String content){
-        super(objectID, System.currentTimeMillis());
-        this.xPos = xPos;
-        this.yPos = yPos;
-        this.radius = radius;
-        this.content = content;
-    }
-
-    public static DiscoveryMessage decode(String msgEncoded){
-        String[] data = msgEncoded.split(":");
-        return new DiscoveryMessage(Integer.parseInt(data[0]),
-                Double.parseDouble(data[1]), Double.parseDouble(data[2]),
-                Double.parseDouble(data[3]), data[4]);
-    }
-
-    public static DiscoveryMessage create(String content, Node<DiscoveryMessage> node) {
-        PositionNode<DiscoveryMessage> realNode = (PositionNode<DiscoveryMessage>)node;
-        return new DiscoveryMessage(realNode.getObjectID(), realNode.getXPos(), realNode.getYPos(),
-                realNode.getRadius(), content);
-    }
-
-
-    @Override
-    public String encode() {
-        return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + content;
-    }
+    // Getters && Setters
 
     @Override
     public String getContent() {
@@ -53,6 +30,36 @@ public class DiscoveryMessage extends Message {
 
     public double getRadius(){
         return this.radius;
+    }
+
+    // Constructors
+
+    public DiscoveryMessage(int objectID, double xPos, double yPos, double radius, String content){
+        super(objectID, System.currentTimeMillis());
+        this.xPos = xPos;
+        this.yPos = yPos;
+        this.radius = radius;
+        this.content = content;
+    }
+
+    // Public Methods
+
+    public static DiscoveryMessage decode(String msgEncoded){
+        String[] data = msgEncoded.split(":");
+        return new DiscoveryMessage(Integer.parseInt(data[0]),
+                Double.parseDouble(data[1]), Double.parseDouble(data[2]),
+                Double.parseDouble(data[3]), data[4]);
+    }
+
+    public static DiscoveryMessage create(String content, Node<DiscoveryMessage> node) {
+        PositionNode<DiscoveryMessage> realNode = (PositionNode<DiscoveryMessage>)node;
+        return new DiscoveryMessage(realNode.getObjectID(), realNode.getXPos(), realNode.getYPos(),
+                realNode.getRadius(), content);
+    }
+
+    @Override
+    public String encode() {
+        return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + content;
     }
 
     @Override
