@@ -76,9 +76,10 @@ public class AccTestCase extends TestCase {
         }
 
         for (int i = 0; i < network.size(); i++) {
+            network.get(i).setInitialTime(System.currentTimeMillis());
             network.get(i).sendMessage();
             try {
-                Thread.sleep(5);
+                Thread.sleep(1000);
             }catch (Exception e) {
                 e.printStackTrace();
             }
@@ -114,10 +115,10 @@ public class AccTestCase extends TestCase {
 
             Path file = Paths.get(acc.getObjectID() + "_" + this.getOutputFileName());
 
-            long period = (acc.getLastReceivedTime() - acc.getInitialTime()) / acc.getIntervalLength();
+            long period = acc.getIntervalCounter(acc.getLastReceivedTime());
 
             try (BufferedWriter writer = Files.newBufferedWriter(file)) {
-                writer.write("Known:" + acc.getKnownNeighbors() + ", Real:" + acc.getKnownNeighbors() + ", Period: " + period);
+                writer.write("Known:" + acc.getKnownNeighbors() + ", Real:" + acc.getKnownNeighbors() + ", Period: " + period + ", WakeUp Times: " + acc.getWakeUpTimes());
             } catch (IOException e) {
                 System.out.println("Error writing to file: " + file);
             }

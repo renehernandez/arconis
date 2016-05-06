@@ -9,18 +9,54 @@ import sun.misc.resources.Messages_es;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by aegis on 28/04/16.
  */
 public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<TMsg> {
 
+    class SendMessageTask extends TimerTask {
+
+        DiscoveryNode<TMsg> node;
+
+        public SendMessageTask(DiscoveryNode<TMsg> node){
+            this.node = node;
+        }
+
+        @Override
+        public void run(){
+            if (node.workCondition()) {
+                node.sendMessage(node.getGenerator().generate("HELLO", node));
+            } else {
+                cancel();
+            }
+        }
+
+    }
+
+    class WakeUpTask extends TimerTask {
+
+        DiscoveryNode<TMsg> node;
+
+        public WakeUpTask(DiscoveryNode<TMsg> node) {
+            this.node = node;
+        }
+
+        @Override
+        public void run(){
+            if (node.workCondition()) {
+                if(node.isAwakenTime()) {
+                    node.increaseWakeUpTimes();
+                }
+            } else {
+                cancel();
+            }
+        }
+    }
+
     // Private Fields
-    long intervalLength = 100;
+    long intervalLength = 1000;
     long epsilon = 10;
     double dutyCycle;
     long initialTime;
@@ -29,6 +65,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
     int secondPrime;
     final Object lock = new Object();
     Set<Integer> knowNeighbors;
+    int wakeUpTimes;
 
     // Getters && Setters
     public long getIntervalLength() {
@@ -88,6 +125,10 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         return (time - initialTime) / intervalLength;
     }
 
+    public int getWakeUpTimes(){
+        return this.wakeUpTimes;
+    }
+
     // Constructors
     public DiscoveryNode(int objectID, MessageData<TMsg> msgData, PositionData posData, double dutyCycle) throws IOException {
         super(objectID, msgData, posData);
@@ -97,11 +138,62 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
 
         this.firstPrime = 3;
         this.secondPrime = 5;
+        this.wakeUpTimes = 0;
+    }
+
+    // Public Methods
+
+    @Override
+    public void sendMessage() {
+        Timer intervalBegin = new Timer();
+        Timer intervalEnd = new Timer();
+
+        SendMessageTask scheduleBegin = new SendMessageTask(this);
+        SendMessageTask scheduleEnd = new SendMessageTask(this);
+
+        WakeUpTask wakeUpTask = new WakeUpTask(this);
+
+        intervalBegin.scheduleAtFixedRate(wakeUpTask, 0, intervalLength);
+        intervalBegin.scheduleAtFixedRate(scheduleBegin, epsilon, intervalLength);
+        intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
+
+
+    }
+
+    @Override
+    public void sendMessage(TMsg outputMsg) {
+        synchronized(this.lock) {
+
+            if(this.isAwakenTime()){
+                for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
+                    writeToSocket(entry, outputMsg);
+                }
+            }
+        }
+    }
+
+    public void increaseWakeUpTimes(){
+        this.wakeUpTimes++;
     }
 
     // Protected Methods
 
-    protected abstract boolean isAwakenTime(TMsg msg);
+    protected boolean isAwakenTime(){
+        return isAwakenTime(null);
+    }
+
+    protected boolean isAwakenTime(TMsg msg){
+        long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
+        long counter = getIntervalCounter(receivedTime);
+
+        if (counter <= 0)
+            return false;
+
+        long firstRem = counter % firstPrime;
+        long secondRem = counter % secondPrime;
+
+        return firstRem == 0 || secondRem == 0;
+    }
 
     protected abstract boolean shouldReceiveMessage(TMsg msg);
 

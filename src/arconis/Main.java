@@ -22,13 +22,13 @@ public class Main {
 
         ArrayList<TestData> data = GenerateTest(5, 0, 0, 1.5);
 
-        DiscoTestCase test = new DiscoTestCase(1, "tests_disco.txt", data);
-
-        test.run();
-
-//        AccTestCase test1 = new AccTestCase(1, "tests_acc.txt", data);
+//        DiscoTestCase test = new DiscoTestCase(1, "tests_disco.txt", data);
 //
-//        test1.run();
+//        test.run();
+
+        AccTestCase test1 = new AccTestCase(1, "tests_acc.txt", data);
+
+        test1.run();
 
     }
 
@@ -48,9 +48,9 @@ public class Main {
         double[][] positions = new double[][] {
                 {1, 2},
                 {1, 1},
-                {2, 2}
-//                {3, 2},
-//                {0, 0}
+                {2, 2},
+                {3, 2},
+                {0, 0}
         };
 
         ArrayList<TestData> list = new ArrayList<>();

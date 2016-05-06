@@ -112,7 +112,7 @@ public class AccMessage extends Message {
         }
 
         return objectID + ":" + xPos + ":" + yPos + ":" + radius + ":" + initialTime + ":"
-                + firstPrime + ":"+ secondPrime + ":"+ neighborsString + ":" + content;
+                + firstPrime + ":" + secondPrime + ":"+ neighborsString + ":" + content;
     }
 
     @Override

@@ -84,14 +84,14 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
             getNeighborItems().add(new NeighborItem(idOfSendingNode, 1, initialtimeOfSendingNode, firstPrimeOfSendingNode+","+secondPrimeOfSendingNode));
             this.lastReceivedTime = msg.getReceivedTime();
             getKnownNeighbors().add(idOfSendingNode);
-            System.out.println("ID: " + this.getObjectID() + ", known: " + this.getNeighborItems()  + ", period: " +
-                    (lastReceivedTime - initialTime)/intervalLength);
+            System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors()  + ", period: " +
+                    (lastReceivedTime - initialTime)/intervalLength + ", WakeUp Times: " + getWakeUpTimes());
         } else if(find.get().getHops() != 1) {
             find.get().setHops(1);
             getKnownNeighbors().add(idOfSendingNode);
             this.lastReceivedTime = msg.getReceivedTime();
             System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors()  + ", period: " +
-                    (lastReceivedTime - initialTime)/intervalLength);
+                    (lastReceivedTime - initialTime)/intervalLength + ", WakeUp Times: " + getWakeUpTimes());
         }
 
         for (NeighborItem neighborEntry : NeighborsOfSendingNode){
@@ -172,16 +172,6 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     protected boolean isAwakenTime()
     {
         return isAwakenTime(null) || this.isAwakenTimeAtExtraPrime();
-    }
-
-    @Override
-    protected boolean isAwakenTime(TMsg msg){
-        long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
-        long firstRem = (diff/ intervalLength ) % firstPrime;
-        long secondRem = (diff/ intervalLength ) % secondPrime;
-
-        return firstRem == 0 || secondRem == 0;
     }
 
     // Private Methods

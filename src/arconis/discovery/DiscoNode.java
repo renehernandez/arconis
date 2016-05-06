@@ -14,58 +14,12 @@ import java.util.concurrent.*;
  */
 public class DiscoNode<TMsg extends DiscoveryMessage> extends DiscoveryNode<TMsg> {
 
-    class DiscoScheduledTask extends TimerTask {
-
-        DiscoNode<TMsg> node;
-
-        public DiscoScheduledTask(DiscoNode<TMsg> node){
-            this.node = node;
-        }
-
-        @Override
-        public void run(){
-            if (node.workCondition()) {
-                node.sendMessage(node.getGenerator().generate("HELLO", node));
-            } else {
-                cancel();
-            }
-        }
-
-    }
-
     // Constructors
 
     public DiscoNode(int objectID, MessageData<TMsg> msgData, PositionData posData, double dutyCycle) throws Exception {
         super(objectID, msgData, posData, dutyCycle);
 
         setInitialTime(System.currentTimeMillis());
-    }
-
-    // Public Methods
-
-    @Override
-    public void sendMessage() {
-        Timer intervalBegin = new Timer();
-        Timer intervalEnd = new Timer();
-
-        DiscoScheduledTask scheduleBegin = new DiscoScheduledTask(this);
-        DiscoScheduledTask scheduleEnd = new DiscoScheduledTask(this);
-
-        intervalBegin.scheduleAtFixedRate(scheduleBegin, 0, intervalLength);
-        intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
-
-    }
-
-    @Override
-    public void sendMessage(TMsg outputMsg) {
-        synchronized(this.lock) {
-
-            if(this.isAwakenTime()){
-                for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
-                    writeToSocket(entry, outputMsg);
-                }
-            }
-        }
     }
 
     // Protected Methods
@@ -76,29 +30,11 @@ public class DiscoNode<TMsg extends DiscoveryMessage> extends DiscoveryNode<TMsg
             if (!this.getKnownNeighbors().contains(msg.getObjectID())) {
                 this.getKnownNeighbors().add(msg.getObjectID());
                 System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors()
-                        + ", Time Period: " + getIntervalCounter(msg.getReceivedTime()));
+                        + ", Time Period: " + getIntervalCounter(msg.getReceivedTime()) + ", WakeUp Times: " + getWakeUpTimes());
                 this.setLastReceivedTime(msg.getReceivedTime());
                 runProcessedMessageEvent();
             }
         }
-    }
-
-    protected boolean isAwakenTime(){
-        return isAwakenTime(null);
-    }
-
-    @Override
-    protected boolean isAwakenTime(TMsg msg){
-        long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long counter = getIntervalCounter(receivedTime);
-
-        if (counter <= 0)
-            return false;
-
-        long firstRem = counter % firstPrime;
-        long secondRem = counter % secondPrime;
-
-        return firstRem == 0 || secondRem == 0;
     }
 
     @Override

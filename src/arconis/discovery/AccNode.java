@@ -12,25 +12,6 @@ import java.util.*;
  */
 public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
 
-    class AccScheduledTask extends TimerTask {
-
-        AccNode<TMsg> node;
-
-        public AccScheduledTask(AccNode<TMsg> node){
-            this.node = node;
-        }
-
-        @Override
-        public void run(){
-            if (node.workCondition()) {
-                node.sendMessage(node.getGenerator().generate("HELLO", node));
-            } else {
-                cancel();
-            }
-        }
-
-    }
-
     // Private Fields
 
  	int extraPrime=-1;
@@ -54,32 +35,6 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
 
     // Public Methods
 
-    @Override
-    public void sendMessage() {
-        Timer intervalBegin = new Timer();
-        Timer intervalEnd = new Timer();
-
-        AccScheduledTask scheduleBegin = new AccScheduledTask(this);
-        AccScheduledTask scheduleEnd = new AccScheduledTask(this);
-
-        intervalBegin.scheduleAtFixedRate(scheduleBegin, 0, intervalLength);
-        intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
-    }
-
-    @Override
-    public void sendMessage(TMsg outputMsg) {
-        synchronized(this.lock) {
-
-            if(this.isAwakenTime()){
-                //System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
-				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
-                    writeToSocket(entry, outputMsg);
-                }
-				
-            }
-        }
-    }
-
     public void updateMyNeighborTable(TMsg msg) {
         int idOfSendingNode = msg.getObjectID();
         long initialtimeOfSendingNode = msg.getInitialtime();
@@ -100,13 +55,13 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
             this.lastReceivedTime = msg.getReceivedTime();
             getKnownNeighbors().add(idOfSendingNode);
             System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors() + ", period: " +
-                    (lastReceivedTime - initialTime)/intervalLength);
+                    (lastReceivedTime - initialTime)/intervalLength + ", WakeUp Times: " + getWakeUpTimes());
         } else if(find.get().getHops() != 1) {
             find.get().setHops(1);
             this.lastReceivedTime = msg.getReceivedTime();
             getKnownNeighbors().add(idOfSendingNode);
             System.out.println("ID: " + this.getObjectID() + ", known: " + this.getKnownNeighbors() + ", period: " +
-                    (lastReceivedTime - initialTime)/intervalLength);
+                    (lastReceivedTime - initialTime)/intervalLength + ", WakeUp Times: " + getWakeUpTimes());
         }
 
         for (NeighborItem neighborEntry : NeighborsOfSendingNode) {
@@ -143,20 +98,6 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
 
             runProcessedMessageEvent();
         }
-    }
-
-    protected boolean isAwakenTime(){
-        return isAwakenTime(null);
-    }
-
-
-    protected boolean isAwakenTime(TMsg msg){
-        long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-        long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
-        long firstRem = (diff/ intervalLength ) % firstPrime;
-        long secondRem = (diff/ intervalLength ) % secondPrime;
-
-        return firstRem == 0 || secondRem == 0;
     }
 
     @Override
