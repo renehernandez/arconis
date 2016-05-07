@@ -180,7 +180,7 @@ public abstract class Node<TMsg extends Message> extends Thread {
         while(workCondition()){
             synchronized (this.queueAccess) {
                 if (getIncomingMessages().size() > 0) {
-                    TMsg msg = getIncomingMessages().poll();
+                    final TMsg msg = getIncomingMessages().poll();
                     if (canProcessMessage(msg)) {
                         // Starting message processing.
                         processMessage(msg);
@@ -200,12 +200,6 @@ public abstract class Node<TMsg extends Message> extends Thread {
             synchronized (this.queueAccess) {
                 if (canProcessMessage(msg)) {
                     getIncomingMessages().add(msg);
-                    msg = getIncomingMessages().poll();
-
-                    final TMsg msgParam = msg;
-
-                    // Starting message processing.
-                    processMessage(msgParam);
                 }
             }
             in.close();
