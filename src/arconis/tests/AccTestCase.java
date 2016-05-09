@@ -73,16 +73,16 @@ public class AccTestCase extends TestCase {
 
         for (int i = 0; i < network.size(); i++) {
             network.get(i).addStopListener(this::writeResult);
-        }
-
-        for (int i = 0; i < network.size(); i++) {
             network.get(i).setInitialTime(System.currentTimeMillis());
-            network.get(i).sendMessage();
             try {
-                Thread.sleep(300);
+                Thread.sleep(3000);
             }catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+
+        for (int i = 0; i < network.size(); i++) {
+            network.get(i).sendMessage();
         }
     }
 

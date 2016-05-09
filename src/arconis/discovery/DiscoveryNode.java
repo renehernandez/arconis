@@ -16,6 +16,8 @@ import java.util.*;
  */
 public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<TMsg> {
 
+    // Tasks
+
     class SendMessageTask extends TimerTask {
 
         DiscoveryNode<TMsg> node;
@@ -56,7 +58,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
     }
 
     // Private Fields
-    long intervalLength = 100;
+    long intervalLength = 1000;
     long epsilon = 10;
     double dutyCycle;
     long initialTime;
@@ -66,6 +68,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
     final Object lock = new Object();
     Set<Integer> knowNeighbors;
     int wakeUpTimes;
+    int localCounter;
 
     // Getters && Setters
     public long getIntervalLength() {
@@ -121,6 +124,10 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         return this.knowNeighbors;
     }
 
+    public int getLocalCounter() {
+        return this.localCounter;
+    }
+
     public long getIntervalCounter(long time){
         return (time - initialTime) / intervalLength;
     }
@@ -154,10 +161,8 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         WakeUpTask wakeUpTask = new WakeUpTask(this);
 
         intervalBegin.scheduleAtFixedRate(wakeUpTask, 0, intervalLength);
-        intervalBegin.scheduleAtFixedRate(scheduleBegin, epsilon, intervalLength);
-        //intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
-
-
+        intervalBegin.scheduleAtFixedRate(scheduleBegin, 0, intervalLength);
+        intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
     }
 
     @Override

@@ -13,6 +13,30 @@ import java.util.*;
  */
 public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
+    // Tasks
+
+    class ExtraPrimeTask extends TimerTask {
+
+        AccLeaderNode<TMsg> node;
+
+        public ExtraPrimeTask(AccLeaderNode<TMsg> node) {
+            this.node = node;
+        }
+
+        @Override
+        public void run(){
+            if(node.workCondition()) {
+                if (node.isAwakenTime(null)) {
+                    node.setExtraPrime(System.currentTimeMillis());
+                }
+            } else {
+                cancel();
+            }
+        }
+    }
+
+    // Private Fields
+
     private int extraWakeupTimeslot=-1;
     private int currentDutyCycle;
 
@@ -40,20 +64,13 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     // Public Methods
 
     @Override
-    public void sendMessage(TMsg outputMsg) {
-        synchronized(this.lock) {
+    public void sendMessage(){
+        super.sendMessage();
 
-            if(this.isAwakenTime()){
-                //System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
-               if (isAwakenTime(null)){
-                    setExtraPrime(System.currentTimeMillis());
-                } //fixme
-				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
-                    writeToSocket(entry, outputMsg);
-                }
-				
-            }
-        }
+        Timer extra = new Timer();
+        ExtraPrimeTask prime = new ExtraPrimeTask(this);
+
+        extra.scheduleAtFixedRate(prime, intervalLength - epsilon, intervalLength);
     }
 
     public void updateMyNeighborTable(TMsg msg) {
@@ -163,11 +180,6 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         }
     }
 
-//    @Override
-//    protected boolean canProcessMessage(TMsg msg) {
-//        return shouldReceiveMessage(msg) && (this.isAwakenTime(msg) || this.isAwakenTimeAtExtraPrime(msg));
-//    }
-
     @Override
     protected boolean isAwakenTime()
     {
@@ -178,14 +190,14 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
     @Override
     protected boolean canProcessMessage(TMsg msg) {
-        return shouldReceiveMessage(msg) && isAwakenTime(msg) && isAwakenTimeAtExtraPrime(msg);
+        return shouldReceiveMessage(msg) && (isAwakenTime(msg) || isAwakenTimeAtExtraPrime(msg));
     }
 
     protected boolean isAwakenTimeAtExtraPrime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
         long counter = getIntervalCounter(receivedTime);
 
-        if (counter <= 0)
+        if (counter <= 0 || extraPrime == -1)
             return false;
 
         long extraRem = counter % extraPrime;
@@ -252,7 +264,7 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
                 gainOfPreviousTimeSlot = gainOfCurrentTimeSlot;
             }
         }
-        System.out.print("extraPrime:"  + extraPrime +"\n");
+        System.out.println("ExtraPrime: "  + extraPrime + ", Time Period: " + getIntervalCounter(startTime));
 
     }
 
