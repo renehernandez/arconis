@@ -65,7 +65,7 @@ public class DiscoTestCase extends TestCase {
                 network.get(i).setInitialTime(System.currentTimeMillis());
                 network.get(i).sendMessage();
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(300);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

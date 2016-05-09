@@ -45,7 +45,7 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
             if(this.isAwakenTime()){
                 //System.out.println("ID: " + this.getObjectID() + " awake time in sendMessage");
-                if (!this.isAwakenTimeAtExtraPrime()){
+               if (isAwakenTime(null)){
                     setExtraPrime(System.currentTimeMillis());
                 } //fixme
 				for(Map.Entry<Integer, Address> entry : this.getNeighbors().entrySet()){
@@ -171,32 +171,38 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     @Override
     protected boolean isAwakenTime()
     {
-        return isAwakenTime(null) || this.isAwakenTimeAtExtraPrime();
+        return isAwakenTime(null) || this.isAwakenTimeAtExtraPrime(null);
     }
 
     // Private Methods
 
-    private boolean isAwakenTimeAtExtraPrime(){
-        return isAwakenTimeAtExtraPrime(null);
+    @Override
+    protected boolean canProcessMessage(TMsg msg) {
+        return shouldReceiveMessage(msg) && isAwakenTime(msg) && isAwakenTimeAtExtraPrime(msg);
     }
 
-	private boolean isAwakenTimeAtExtraPrime(TMsg msg){
+    protected boolean isAwakenTimeAtExtraPrime(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
-		return isAwakenTimeAtExtraPrime(receivedTime, this.initialTime, this.extraPrime);
+        long counter = getIntervalCounter(receivedTime);
+
+        if (counter <= 0)
+            return false;
+
+        long extraRem = counter % extraPrime;
+        return extraRem == 0 ;
     }
 
-	 private boolean isAwakenTime(long receivedTime, long initialTime, int firstPrime, int secondPrime){
-        long diff = receivedTime - initialTime < 0 ? 0 : receivedTime - initialTime;
-        long firstRem = (diff/ intervalLength ) % firstPrime;
-        long secondRem = (diff/ intervalLength ) % secondPrime;
+	 private boolean isAwakenTimeAtSlot(long receivedTime, long initialTime, int firstPrime, int secondPrime){
+         long counter =  (receivedTime - initialTime) / intervalLength;
+         if (counter <= 0)
+             return false;
 
-        return firstRem == 0 || secondRem == 0;
+         long firstRem = counter % firstPrime;
+         long secondRem = counter % secondPrime;
+
+         return firstRem == 0 || secondRem == 0;
     }
 
-	private boolean isAwakenTimeAtExtraPrime(long receivedTime, long initialTime, int extraPrime){
-        long extraRem = (receivedTime - initialTime) / intervalLength;
-        return extraRem == extraPrime;
-    }
 
 
 //    public int allDirectNeighborsFound() {
@@ -226,25 +232,27 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
     private void setExtraPrime(long startTime) {
         List<Long> timeslots = new ArrayList<Long>();
-		long timeslot = startTime + 5;
+		long timeslot = startTime + this.intervalLength;
 		double gainOfCurrentTimeSlot=0;
 		double gainOfPreviousTimeSlot=0;
 
-		while(!isAwakenTime(timeslot, this.initialTime, this.firstPrime, this.secondPrime)){
+		while(!isAwakenTimeAtSlot(timeslot, this.initialTime, this.firstPrime, this.secondPrime)){
             timeslots.add(timeslot);
-			timeslot = timeslot + 5;
+			timeslot = timeslot + this.intervalLength;
 		}
 
-        if (timeslots.size() > 20){
+        if (timeslots.size() > 10){
 
             for (int i=0; i<timeslots.size();i++){
                 gainOfCurrentTimeSlot = getPointOfTimeslot(timeslots.get(i));
                 if (gainOfCurrentTimeSlot  > 0 && gainOfCurrentTimeSlot > gainOfPreviousTimeSlot){
                     extraPrime = (int)((timeslots.get(i) - this.initialTime) / this.intervalLength);
+
                 }
                 gainOfPreviousTimeSlot = gainOfCurrentTimeSlot;
             }
         }
+        System.out.print("extraPrime:"  + extraPrime +"\n");
 
     }
 
@@ -264,7 +272,7 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
             initialtimeOfCurrentNeighborEntry = neighborEntry.getInitialtime();
             hopsdOfCurrentNeighborEntry = neighborEntry.getHops();
             boolean wakeupCondition = false;
-            if (isAwakenTime(timeslot, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry1, dutycyclefCurrentNeighborEntry2)){//if the node of current neighbor entry will awake at this timeslot
+            if (isAwakenTimeAtSlot(timeslot, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry1, dutycyclefCurrentNeighborEntry2)){//if the node of current neighbor entry will awake at this timeslot
                     wakeupCondition=true;
                  }
  

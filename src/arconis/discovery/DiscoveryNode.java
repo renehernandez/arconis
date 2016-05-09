@@ -56,7 +56,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
     }
 
     // Private Fields
-    long intervalLength = 1000;
+    long intervalLength = 100;
     long epsilon = 10;
     double dutyCycle;
     long initialTime;
@@ -136,8 +136,8 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
         this.knowNeighbors = Collections.synchronizedSet(new HashSet<>());
         this.dutyCycle = dutyCycle;
 
-        this.firstPrime = 3;
-        this.secondPrime = 5;
+        this.firstPrime = 37;
+        this.secondPrime = 43;
         this.wakeUpTimes = 0;
     }
 
@@ -155,7 +155,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
 
         intervalBegin.scheduleAtFixedRate(wakeUpTask, 0, intervalLength);
         intervalBegin.scheduleAtFixedRate(scheduleBegin, epsilon, intervalLength);
-        intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
+        //intervalEnd.scheduleAtFixedRate(scheduleEnd, intervalLength - epsilon, intervalLength);
 
 
     }
