@@ -38,7 +38,7 @@ public class AccTestCase extends TestCase {
         network = ClassicNetworks.CompleteNetwork(
                 (i) -> {
                     try {
-                        if (i == 0) {
+                        if (i == 10) {
                             return new AccLeaderNode<>(
                                     i,
                                     new MessageData<>(AccMessage::create, AccMessage::decode),
@@ -75,7 +75,7 @@ public class AccTestCase extends TestCase {
             network.get(i).addStopListener(this::writeResult);
             network.get(i).setInitialTime(System.currentTimeMillis());
             try {
-                Thread.sleep(3000);
+                Thread.sleep(12000);
             }catch (Exception e) {
                 e.printStackTrace();
             }
@@ -118,7 +118,7 @@ public class AccTestCase extends TestCase {
             long period = acc.getIntervalCounter(acc.getLastReceivedTime());
 
             try (BufferedWriter writer = Files.newBufferedWriter(file)) {
-                writer.write("Known:" + acc.getKnownNeighbors() + ", Real:" + acc.getKnownNeighbors() + ", Period: " + period + ", WakeUp Times: " + acc.getWakeUpTimes());
+                writer.write("Known:" + acc.getKnownNeighbors() + ", Period: " + period + ", WakeUp Times: " + acc.getWakeUpTimes());
             } catch (IOException e) {
                 System.out.println("Error writing to file: " + file);
             }

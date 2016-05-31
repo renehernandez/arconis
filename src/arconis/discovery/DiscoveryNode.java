@@ -58,7 +58,7 @@ public abstract class DiscoveryNode<TMsg extends Message> extends PositionNode<T
     }
 
     // Private Fields
-    long intervalLength = 1000;
+    long intervalLength = 6000;
     long epsilon = 10;
     double dutyCycle;
     long initialTime;

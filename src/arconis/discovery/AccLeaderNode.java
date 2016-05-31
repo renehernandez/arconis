@@ -15,11 +15,11 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
     // Tasks
 
-    class ExtraPrimeTask extends TimerTask {
+    class ExtraSlotTask extends TimerTask {
 
         AccLeaderNode<TMsg> node;
 
-        public ExtraPrimeTask(AccLeaderNode<TMsg> node) {
+        public ExtraSlotTask(AccLeaderNode<TMsg> node) {
             this.node = node;
         }
 
@@ -27,7 +27,7 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         public void run(){
             if(node.workCondition()) {
                 if (node.isAwakenTime(null)) {
-                    node.setExtraPrime(System.currentTimeMillis());
+                    node.setExtraSlot(System.currentTimeMillis());
                 }
             } else {
                 cancel();
@@ -35,17 +35,42 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         }
     }
 
+    class AdjustWeightsTask extends TimerTask {
+
+        AccLeaderNode<TMsg> node;
+
+        public AdjustWeightsTask(AccLeaderNode<TMsg> node) {
+            this.node = node;
+        }
+
+        @Override
+        public void run(){
+            if(node.workCondition()) {
+                if (node.isAwakenTime()) {
+                    node.adjustWeight();
+                }
+            } else {
+                cancel();
+            }
+        }
+    }
+
+
+
     // Private Fields
 
-    private int extraWakeupTimeslot=-1;
-    private int currentDutyCycle;
-
-
-    private double weightOfDirectGainFrom2HopsNeighbors=0.5;
+    private int extraSlot=-1;
+    /*private double weightOfDirectGainFrom2HopsNeighbors=0.5;
     private double weightOfDirectGainFrom3HopsNeighbors=0.5;
     private double weightOfIndirectGainFromFrom1HopsNeighbors=0.4;
     private double weightOfIndirectGainFromFrom2HopsNeighbors=0.3;
-    private double weightOfIndirectGainFromFrom3HopsNeighbors=0.3;
+    private double weightOfIndirectGainFromFrom3HopsNeighbors=0.3;*/
+
+    private double weightOfDirectGainFrom2HopsNeighbors=0.5;
+    private double weightOfDirectGainFrom3HopsNeighbors=0.5;
+    private double weightOfIndirectGainFromFrom1HopsNeighbors=0;
+    private double weightOfIndirectGainFromFrom2HopsNeighbors=0;
+    private double weightOfIndirectGainFromFrom3HopsNeighbors=0;
 
 
     private int numberOfNewNeighborFrom2HopsNeighbors=0;
@@ -67,10 +92,15 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     public void sendMessage(){
         super.sendMessage();
 
-        Timer extra = new Timer();
-        ExtraPrimeTask prime = new ExtraPrimeTask(this);
+        Timer extraSlot = new Timer();
+        ExtraSlotTask extraPrimeTask = new ExtraSlotTask(this);
 
-        extra.scheduleAtFixedRate(prime, intervalLength - epsilon, intervalLength);
+        Timer adjustWeight = new Timer();
+        AdjustWeightsTask adjustWeightsTask = new AdjustWeightsTask(this);
+
+        extraSlot.scheduleAtFixedRate(extraPrimeTask, intervalLength + 3000, intervalLength);
+
+        adjustWeight.scheduleAtFixedRate(adjustWeightsTask, intervalLength + 3700, intervalLength);
     }
 
     public void updateMyNeighborTable(TMsg msg) {
@@ -85,13 +115,17 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         long initialtimeOfCurrentNeighborEntry;
         String dutycyclefCurrentNeighborEntry;
 
+
         int hopsdOfSendingNode = 0;
         hopsdOfSendingNode =  getHopsOfNode(idOfSendingNode);
+        //System.out.println("ID: " + idOfSendingNode + ", hopsdOfSendingNode: " + hopsdOfSendingNode );
 
         switch (hopsdOfSendingNode) {
             case 2:  numberOfNewNeighborFrom2HopsNeighbors++;
+                //System.out.println("New Neighbor ID: " + idOfSendingNode + ", numberOfNewNeighborFrom2HopsNeighbors: " + numberOfNewNeighborFrom2HopsNeighbors );
                 break;
             case 3:  numberOfNewNeighborFrom3HopsNeighbors++;
+                //System.out.println("New Neighbor ID: " + idOfSendingNode + ", numberOfNewNeighborFrom3HopsNeighbors: " + numberOfNewNeighborFrom3HopsNeighbors );
                 break;
             default: break;
         }
@@ -125,12 +159,15 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
                     switch (hopsdOfSendingNode) {
                         case 1:
                             numberOfNewInformationFrom1HopsNeighbors++;
+                            //System.out.println("New Information ID: " + idOfSendingNode + ", numberOfNewInformationFrom1HopsNeighbors: " + numberOfNewInformationFrom1HopsNeighbors );
                             break;
                         case 2:
                             numberOfNewInformationFrom2HopsNeighbors++;
+                            //System.out.println("New Information ID: " + idOfSendingNode + ", numberOfNewInformationFrom2HopsNeighbors: " + numberOfNewInformationFrom2HopsNeighbors );
                             break;
                         case 3:
                             numberOfNewInformationFrom3HopsNeighbors++;
+                            //System.out.println("New Information ID: " + idOfSendingNode + ", numberOfNewInformationFrom3HopsNeighbors: " + numberOfNewInformationFrom3HopsNeighbors );
                             break;
 
                         default:
@@ -142,21 +179,22 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
                 NeighborItem current = getNeighborItems().stream().filter(x -> x.getId() == neighborEntry.getId()).findFirst().get();
 
                 if (hopsdOfCurrentNeighborEntry < current.getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
-//                    idOfCurrentNeighborEntry = neighborEntry.getId();
                     current.setDutycycle(neighborEntry.getDutycycle());
                     current.setInitialtime(neighborEntry.getInitialtime());
-
-//                    getNeighborItems().set(getNeighborItems().indexOf(neighborEntry), new NeighborItem(idOfCurrentNeighborEntry, hopsdOfCurrentNeighborEntry, initialtimeOfCurrentNeighborEntry, dutycyclefCurrentNeighborEntry));
+                    current.setHops(hopsdOfCurrentNeighborEntry);
 
                     switch (hopsdOfSendingNode) {
                         case 1:
                             numberOfNewInformationFrom1HopsNeighbors++;
+                            //System.out.println("Update Information  ID: " + idOfSendingNode + ", numberOfNewInformationFrom1HopsNeighbors: " + numberOfNewInformationFrom1HopsNeighbors );
                             break;
                         case 2:
                             numberOfNewInformationFrom2HopsNeighbors++;
+                            //System.out.println("Update Information ID: " + idOfSendingNode + ", numberOfNewInformationFrom2HopsNeighbors: " + numberOfNewInformationFrom2HopsNeighbors );
                             break;
                         case 3:
                             numberOfNewInformationFrom3HopsNeighbors++;
+                            //System.out.println("Update Information ID: " + idOfSendingNode + ", numberOfNewInformationFrom3HopsNeighbors: " + numberOfNewInformationFrom3HopsNeighbors );
                             break;
 
                         default:
@@ -169,43 +207,36 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
 
     // Protected Methods
 
-    @Override
-    protected void processMessage(TMsg msg) {
-        synchronized(this.lock) {
-//            System.out.println("ID: " + this.getObjectID() + ", inputMsg: " + msg);
-            updateMyNeighborTable(msg);
-//            System.out.println("ID: " + this.getObjectID() + ", known: " + this.realNeighbors);
-
-            runProcessedMessageEvent();
-        }
-    }
 
     @Override
     protected boolean isAwakenTime()
     {
-        return isAwakenTime(null) || this.isAwakenTimeAtExtraPrime(null);
+        return isAwakenTime(null) || this.isAwakenTimeAtExtraSlot(null);
     }
 
     // Private Methods
 
     @Override
     protected boolean canProcessMessage(TMsg msg) {
-        return shouldReceiveMessage(msg) && (isAwakenTime(msg) || isAwakenTimeAtExtraPrime(msg));
+        return shouldReceiveMessage(msg) && (isAwakenTime(msg) || isAwakenTimeAtExtraSlot(msg));
     }
 
-    protected boolean isAwakenTimeAtExtraPrime(TMsg msg){
+    protected boolean isAwakenTimeAtExtraSlot(TMsg msg){
         long receivedTime = msg != null ? msg.getReceivedTime() : System.currentTimeMillis();
         long counter = getIntervalCounter(receivedTime);
 
-        if (counter <= 0 || extraPrime == -1)
+        if (counter <= 0 || extraSlot == -1)
             return false;
 
-        long extraRem = counter % extraPrime;
+        long extraRem = counter % extraSlot;
+        /*if (extraRem == 0){
+            System.out.println("leader wake up at Extraslot: "  + counter);
+        }*/
         return extraRem == 0 ;
     }
 
-	 private boolean isAwakenTimeAtSlot(long receivedTime, long initialTime, int firstPrime, int secondPrime){
-         long counter =  (receivedTime - initialTime) / intervalLength;
+	 private boolean isAwakenTimeAtSlot(long slotTime, long initialTime, int firstPrime, int secondPrime){
+         long counter =  (slotTime - initialTime) / intervalLength;
          if (counter <= 0)
              return false;
 
@@ -216,19 +247,6 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
     }
 
 
-
-//    public int allDirectNeighborsFound() {
-//        int neighborsFound =0;
-//
-//        for (NeighborItem neighborEntry : getNeighborItems()) {
-//            if (neighborEntry.getHops() == 1 || neighborEntry.getHops() == 0){
-//                neighborsFound++;
-//            }
-//        }
-//
-//        return neighborsFound;
-//
-//    }
 
 
     private int getHopsOfNode(int id) {
@@ -242,29 +260,30 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         return hops;
     }
 
-    private void setExtraPrime(long startTime) {
+    private void setExtraSlot(long startTime) {
         List<Long> timeslots = new ArrayList<Long>();
 		long timeslot = startTime + this.intervalLength;
 		double gainOfCurrentTimeSlot=0;
-		double gainOfPreviousTimeSlot=0;
+		double highestGain=0;
+        extraSlot=-1;
 
 		while(!isAwakenTimeAtSlot(timeslot, this.initialTime, this.firstPrime, this.secondPrime)){
             timeslots.add(timeslot);
 			timeslot = timeslot + this.intervalLength;
 		}
 
-        if (timeslots.size() > 10){
+        //if (timeslots.size() > 10){
 
             for (int i=0; i<timeslots.size();i++){
                 gainOfCurrentTimeSlot = getPointOfTimeslot(timeslots.get(i));
-                if (gainOfCurrentTimeSlot  > 0 && gainOfCurrentTimeSlot > gainOfPreviousTimeSlot){
-                    extraPrime = (int)((timeslots.get(i) - this.initialTime) / this.intervalLength);
-
+                if (gainOfCurrentTimeSlot  > 0.0 && gainOfCurrentTimeSlot > highestGain){
+                    extraSlot = (int)((timeslots.get(i) - this.initialTime) / this.intervalLength);
+                    highestGain = gainOfCurrentTimeSlot;
                 }
-                gainOfPreviousTimeSlot = gainOfCurrentTimeSlot;
+
             }
-        }
-        System.out.println("ExtraPrime: "  + extraPrime + ", Time Period: " + getIntervalCounter(startTime));
+        //}
+        //System.out.println("extraSlot: "  + extraSlot + ", Time Period: " + getIntervalCounter(startTime) + ", Gain: " + highestGain);
 
     }
 
@@ -293,8 +312,10 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
                         case 1: wakeupCountOf1HopNeighbors ++ ;
                             break;
                         case 2: wakeupCountOf2HopNeighbors ++ ;
+                            //System.out.println("ID: " + neighborEntry.getId()  +", Time Period: " + getIntervalCounter(timeslot) + ", hops: " + hopsdOfCurrentNeighborEntry);
                             break;
                         case 3: wakeupCountOf3HopNeighbors ++ ;
+                            //System.out.println("ID: " + neighborEntry.getId() +", Time Period: " + getIntervalCounter(timeslot) + ", hops: " + hopsdOfCurrentNeighborEntry);
                             break;
                         default: break ;
                     }
@@ -304,22 +325,43 @@ public class AccLeaderNode<TMsg extends AccMessage> extends AccNode<TMsg> {
         point = 0.6 * (weightOfDirectGainFrom2HopsNeighbors * wakeupCountOf2HopNeighbors + weightOfDirectGainFrom3HopsNeighbors * wakeupCountOf3HopNeighbors ) +
                 0.4 * (weightOfIndirectGainFromFrom1HopsNeighbors * wakeupCountOf1HopNeighbors + weightOfIndirectGainFromFrom2HopsNeighbors * wakeupCountOf2HopNeighbors + weightOfIndirectGainFromFrom3HopsNeighbors * wakeupCountOf3HopNeighbors );
 
+        //point = 0.6 * (weightOfDirectGainFrom2HopsNeighbors * wakeupCountOf2HopNeighbors + weightOfDirectGainFrom3HopsNeighbors * wakeupCountOf3HopNeighbors ) +
+                //0.4 * (weightOfIndirectGainFromFrom1HopsNeighbors * wakeupCountOf1HopNeighbors );
+
+
         return point;
     }
 
 
-//    public void adjustWeight() {
-//        if ((numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) > 0){
-//            weightOfDirectGainFrom2HopsNeighbors = (weightOfDirectGainFrom2HopsNeighbors + numberOfNewNeighborFrom2HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
-//            weightOfDirectGainFrom3HopsNeighbors = (weightOfDirectGainFrom3HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
-//        }
-//
-//        if ((numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) > 0){
-//            weightOfIndirectGainFromFrom1HopsNeighbors = (weightOfIndirectGainFromFrom1HopsNeighbors + numberOfNewInformationFrom1HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
-//            weightOfIndirectGainFromFrom2HopsNeighbors = (weightOfIndirectGainFromFrom2HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
-//            weightOfIndirectGainFromFrom3HopsNeighbors = (weightOfIndirectGainFromFrom3HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
-//        }
-//
-//    }
+    public void adjustWeight() {
+        /*System.out.println("numberOfNewNeighborFrom2HopsNeighbors: "  + numberOfNewNeighborFrom2HopsNeighbors +
+                ", numberOfNewNeighborFrom3HopsNeighbors: "  + numberOfNewNeighborFrom3HopsNeighbors +
+                ", numberOfNewInformationFrom1HopsNeighbors: "  + numberOfNewInformationFrom1HopsNeighbors +
+                ", numberOfNewInformationFrom2HopsNeighbors: "  + numberOfNewInformationFrom2HopsNeighbors +
+                ", numberOfNewInformationFrom3HopsNeighbors: "  + numberOfNewInformationFrom3HopsNeighbors );*/
+        if ((numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) > 0){
+            weightOfDirectGainFrom2HopsNeighbors = (weightOfDirectGainFrom2HopsNeighbors + numberOfNewNeighborFrom2HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
+            weightOfDirectGainFrom3HopsNeighbors = (weightOfDirectGainFrom3HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors / (numberOfNewNeighborFrom2HopsNeighbors + numberOfNewNeighborFrom3HopsNeighbors) ) / 2;
+        }
+
+        if ((numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) > 0){
+            weightOfIndirectGainFromFrom1HopsNeighbors = (weightOfIndirectGainFromFrom1HopsNeighbors + numberOfNewInformationFrom1HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+            weightOfIndirectGainFromFrom2HopsNeighbors = (weightOfIndirectGainFromFrom2HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+            weightOfIndirectGainFromFrom3HopsNeighbors = (weightOfIndirectGainFromFrom3HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors / (numberOfNewInformationFrom1HopsNeighbors + numberOfNewInformationFrom2HopsNeighbors + numberOfNewInformationFrom3HopsNeighbors) ) / 2;
+        }
+        /*System.out.println("weightOfDirectGainFrom2HopsNeighbors: "  + weightOfDirectGainFrom2HopsNeighbors +
+                ", weightOfDirectGainFrom3HopsNeighbors: "  + weightOfDirectGainFrom3HopsNeighbors +
+                ", weightOfIndirectGainFromFrom1HopsNeighbors: "  + weightOfIndirectGainFromFrom1HopsNeighbors +
+                ", weightOfIndirectGainFromFrom2HopsNeighbors: "  + weightOfIndirectGainFromFrom2HopsNeighbors +
+                ", weightOfIndirectGainFromFrom3HopsNeighbors: "  + weightOfIndirectGainFromFrom3HopsNeighbors );*/
+
+        numberOfNewNeighborFrom2HopsNeighbors=0;
+        numberOfNewNeighborFrom3HopsNeighbors=0;
+        numberOfNewInformationFrom1HopsNeighbors=0;
+        numberOfNewInformationFrom2HopsNeighbors=0;
+        numberOfNewInformationFrom3HopsNeighbors=0;
+
+
+    }
 
 }

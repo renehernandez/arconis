@@ -14,8 +14,7 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
 
     // Private Fields
 
- 	int extraPrime=-1;
-    List<NeighborItem> neighborItems;
+     List<NeighborItem> neighborItems;
 
     // Getters && Setters
 
@@ -83,6 +82,7 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
                 if (hopsdOfCurrentNeighborEntry < current.getHops() && hopsdOfCurrentNeighborEntry <= 3) { // only keep one entry for each node with minimum hops to current node and only}
                     current.setDutycycle(neighborEntry.getDutycycle());
                     current.setInitialtime(neighborEntry.getInitialtime());
+                    current.setHops(hopsdOfCurrentNeighborEntry);
                 }
             }
         }
@@ -94,7 +94,9 @@ public class AccNode<TMsg extends AccMessage> extends DiscoveryNode<TMsg> {
     protected void processMessage(TMsg msg) {
         synchronized(this.lock) {
             updateMyNeighborTable(msg);
-//            System.out.println("ID: " + this.getObjectID() + ", known: " + this.realNeighbors);
+            if (this.getObjectID()==0) {
+                //System.out.println("ID: " + this.getObjectID() + ", known: " + this.getNeighborItems());
+            }
 
             runProcessedMessageEvent();
         }
